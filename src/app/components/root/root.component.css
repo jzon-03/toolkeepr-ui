@@ -1,0 +1,91 @@
+.drawer-container {
+  height: 100vh;
+  display: flex;
+}
+
+.sidenav {
+  width: 250px;
+  box-shadow: 2px 0 5px rgba(0, 0, 0, 0.1);
+}
+
+.main-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.content {
+  flex: 1;
+  padding: 20px;
+  overflow: auto;
+}
+
+.spacer {
+  flex: 1 1 auto;
+}
+
+.menu-button {
+  margin-right: 8px;
+}
+
+.toolbar-button {
+  margin: 0 4px;
+  font-size: 14px;
+}
+
+.toolbar-button mat-icon {
+  margin-right: 4px;
+  font-size: 18px;
+}
+
+mat-toolbar {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+  .sidenav {
+    width: 200px;
+  }
+}
+
+@media (max-width: 480px) {
+  .sidenav {
+    width: 100%;
+    max-width: 280px;
+  }
+  
+  .content {
+    padding: 10px;
+  }
+}
+
+/* User info styling */
+.user-info {
+  background-color: rgba(0, 0, 0, 0.05);
+  margin: 8px;
+  border-radius: 8px;
+  cursor: default;
+}
+
+.user-info:hover {
+  background-color: rgba(0, 0, 0, 0.08);
+}
+
+.user-details {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.2;
+}
+
+.user-name {
+  font-weight: 500;
+  font-size: 14px;
+}
+
+.user-email {
+  font-size: 12px;
+  color: rgba(0, 0, 0, 0.6);
+}

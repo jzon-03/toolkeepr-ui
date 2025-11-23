@@ -1,0 +1,312 @@
+<!-- Settings Component Template -->
+<div class="settings-container" [@slideIn]>
+  <!-- Loading Overlay -->
+  <div class="loading-overlay" *ngIf="isLoading" [@fadeInOut]>
+    <mat-spinner diameter="50"></mat-spinner>
+    <p>Loading settings...</p>
+  </div>
+
+  <!-- Header -->
+  <div class="settings-header">
+    <div class="header-content">
+      <div class="title-section">
+        <mat-icon class="header-icon">settings</mat-icon>
+        <h1>Settings</h1>
+      </div>
+      <div class="header-actions">
+        <button mat-button color="accent" (click)="testNotification()">
+          <mat-icon>notifications</mat-icon>
+          Test Notification
+        </button>
+        <button mat-raised-button color="primary" (click)="saveAllSettings()" [disabled]="isSaving">
+          <mat-icon>save</mat-icon>
+          Save All Settings
+          <mat-spinner *ngIf="isSaving" diameter="20" class="button-spinner"></mat-spinner>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Navigation Tabs -->
+  <div class="settings-nav">
+    <mat-tab-group [selectedIndex]="0">
+      <mat-tab>
+        <ng-template mat-tab-label>
+          <mat-icon>person</mat-icon>
+          <span>Profile</span>
+        </ng-template>
+        
+        <!-- Profile Settings Content -->
+        <div class="settings-content">
+          <mat-card class="settings-card">
+            <mat-card-header>
+              <div mat-card-avatar class="avatar-container">
+                <img *ngIf="userProfile.avatar; else defaultAvatar" 
+                     [src]="userProfile.avatar" 
+                     alt="User Avatar" 
+                     class="user-avatar">
+                <ng-template #defaultAvatar>
+                  <mat-icon class="default-avatar">account_circle</mat-icon>
+                </ng-template>
+              </div>
+              <mat-card-title>Profile Information</mat-card-title>
+              <mat-card-subtitle>Manage your personal information and preferences</mat-card-subtitle>
+            </mat-card-header>
+
+            <mat-card-content>
+              <form [formGroup]="profileForm" class="profile-form">
+                <!-- Avatar Upload -->
+                <div class="avatar-section">
+                  <div class="avatar-upload">
+                    <input type="file" #avatarInput accept="image/*" (change)="uploadAvatar($event)" style="display: none;">
+                    <button mat-raised-button color="accent" (click)="avatarInput.click()">
+                      <mat-icon>camera_alt</mat-icon>
+                      Change Avatar
+                    </button>
+                  </div>
+                </div>
+
+                <!-- Personal Information -->
+                <div class="form-section">
+                  <h3>Personal Information</h3>
+                  <div class="form-row">
+                    <mat-form-field appearance="outline">
+                      <mat-label>First Name</mat-label>
+                      <input matInput formControlName="firstName" required>
+                    </mat-form-field>
+
+                    <mat-form-field appearance="outline">
+                      <mat-label>Last Name</mat-label>
+                      <input matInput formControlName="lastName" required>
+                    </mat-form-field>
+                  </div>
+
+                  <mat-form-field appearance="outline" class="full-width">
+                    <mat-label>Email Address</mat-label>
+                    <input matInput formControlName="email" type="email" required>
+                  </mat-form-field>
+                </div>
+
+                <!-- Localization Settings -->
+                <div class="form-section">
+                  <h3>Localization</h3>
+                  <div class="form-row">
+                    <mat-form-field appearance="outline">
+                      <mat-label>Timezone</mat-label>
+                      <mat-select formControlName="timezone">
+                        <mat-option *ngFor="let timezone of timezones" [value]="timezone.value">
+                          {{ timezone.label }}
+                        </mat-option>
+                      </mat-select>
+                    </mat-form-field>
+
+                    <mat-form-field appearance="outline">
+                      <mat-label>Language</mat-label>
+                      <mat-select formControlName="language">
+                        <mat-option *ngFor="let lang of languages" [value]="lang.value">
+                          {{ lang.label }}
+                        </mat-option>
+                      </mat-select>
+                    </mat-form-field>
+                  </div>
+                </div>
+              </form>
+            </mat-card-content>
+
+            <mat-card-actions align="end">
+              <button mat-button (click)="profileForm.reset()">Reset</button>
+              <button mat-raised-button color="primary" (click)="saveProfile()" [disabled]="!profileForm.valid || isSaving">
+                Save Profile
+              </button>
+            </mat-card-actions>
+          </mat-card>
+        </div>
+      </mat-tab>
+
+      <!-- Notifications Tab -->
+      <mat-tab>
+        <ng-template mat-tab-label>
+          <mat-icon>notifications</mat-icon>
+          <span>Notifications</span>
+        </ng-template>
+        
+        <div class="settings-content">
+          <mat-card class="settings-card">
+            <mat-card-header>
+              <mat-icon mat-card-avatar>notifications</mat-icon>
+              <mat-card-title>Notification Preferences</mat-card-title>
+              <mat-card-subtitle>Control what notifications you receive</mat-card-subtitle>
+            </mat-card-header>
+
+            <mat-card-content>
+              <form [formGroup]="notificationForm" class="notification-form">
+                <div class="notification-group">
+                  <h3>General Notifications</h3>
+                  <div class="notification-option">
+                    <mat-slide-toggle formControlName="emailNotifications">
+                      Email Notifications
+                    </mat-slide-toggle>
+                    <p class="option-description">Receive notifications via email</p>
+                  </div>
+
+                  <div class="notification-option">
+                    <mat-slide-toggle formControlName="pushNotifications">
+                      Push Notifications
+                    </mat-slide-toggle>
+                    <p class="option-description">Receive browser push notifications</p>
+                  </div>
+                </div>
+              </form>
+            </mat-card-content>
+
+            <mat-card-actions align="end">
+              <button mat-button (click)="notificationForm.reset()">Reset</button>
+              <button mat-raised-button color="primary" (click)="saveNotifications()" [disabled]="isSaving">
+                Save Notifications
+              </button>
+            </mat-card-actions>
+          </mat-card>
+        </div>
+      </mat-tab>
+
+      <!-- Security Tab -->
+      <mat-tab>
+        <ng-template mat-tab-label>
+          <mat-icon>security</mat-icon>
+          <span>Security</span>
+        </ng-template>
+        
+        <div class="settings-content">
+          <mat-card class="settings-card">
+            <mat-card-header>
+              <mat-icon mat-card-avatar>security</mat-icon>
+              <mat-card-title>Security Settings</mat-card-title>
+              <mat-card-subtitle>Protect your account and data</mat-card-subtitle>
+            </mat-card-header>
+
+            <mat-card-content>
+              <form [formGroup]="securityForm" class="security-form">
+                <div class="security-section">
+                  <h3>Authentication</h3>
+                  <div class="security-option">
+                    <button mat-raised-button color="accent" (click)="changePassword()">
+                      <mat-icon>lock</mat-icon>
+                      Change Password
+                    </button>
+                    <p class="option-description">Update your account password</p>
+                  </div>
+
+                  <div class="security-option">
+                    <mat-slide-toggle formControlName="twoFactorAuth">
+                      Two-Factor Authentication
+                    </mat-slide-toggle>
+                    <p class="option-description">Add an extra layer of security</p>
+                  </div>
+                </div>
+              </form>
+            </mat-card-content>
+
+            <mat-card-actions align="end">
+              <button mat-button (click)="securityForm.reset()">Reset</button>
+              <button mat-raised-button color="primary" (click)="saveSecurity()" [disabled]="!securityForm.valid || isSaving">
+                Save Security Settings
+              </button>
+            </mat-card-actions>
+          </mat-card>
+        </div>
+      </mat-tab>
+
+      <!-- Appearance Tab -->
+      <mat-tab>
+        <ng-template mat-tab-label>
+          <mat-icon>palette</mat-icon>
+          <span>Appearance</span>
+        </ng-template>
+        
+        <div class="settings-content">
+          <mat-card class="settings-card">
+            <mat-card-header>
+              <mat-icon mat-card-avatar>palette</mat-icon>
+              <mat-card-title>Appearance Settings</mat-card-title>
+              <mat-card-subtitle>Customize the look and feel</mat-card-subtitle>
+            </mat-card-header>
+
+            <mat-card-content>
+              <form [formGroup]="appearanceForm" class="appearance-form">
+                <div class="appearance-section">
+                  <h3>Theme</h3>
+                  <mat-radio-group formControlName="theme" class="theme-group">
+                    <div class="theme-option" *ngFor="let theme of themes">
+                      <mat-radio-button [value]="theme.value">
+                        <div class="theme-content">
+                          <mat-icon>{{ theme.icon }}</mat-icon>
+                          <span>{{ theme.label }}</span>
+                        </div>
+                      </mat-radio-button>
+                    </div>
+                  </mat-radio-group>
+                </div>
+              </form>
+            </mat-card-content>
+
+            <mat-card-actions align="end">
+              <button mat-button (click)="appearanceForm.reset()">Reset</button>
+              <button mat-raised-button color="primary" (click)="saveAppearance()" [disabled]="isSaving">
+                Save Appearance
+              </button>
+            </mat-card-actions>
+          </mat-card>
+        </div>
+      </mat-tab>
+
+      <!-- Backup Tab -->
+      <mat-tab>
+        <ng-template mat-tab-label>
+          <mat-icon>backup</mat-icon>
+          <span>Backup</span>
+        </ng-template>
+        
+        <div class="settings-content">
+          <mat-card class="settings-card">
+            <mat-card-header>
+              <mat-icon mat-card-avatar>backup</mat-icon>
+              <mat-card-title>Backup Settings</mat-card-title>
+              <mat-card-subtitle>Manage your data backups</mat-card-subtitle>
+            </mat-card-header>
+
+            <mat-card-content>
+              <form [formGroup]="backupForm" class="backup-form">
+                <div class="backup-section">
+                  <h3>Automatic Backup</h3>
+                  <div class="backup-option">
+                    <mat-slide-toggle formControlName="autoBackup">
+                      Enable Automatic Backup
+                    </mat-slide-toggle>
+                    <p class="option-description">Automatically backup your data</p>
+                  </div>
+                </div>
+
+                <div class="backup-section">
+                  <h3>Manual Backup</h3>
+                  <div class="backup-actions">
+                    <button mat-raised-button color="primary" (click)="createBackup()">
+                      <mat-icon>backup</mat-icon>
+                      Create Backup Now
+                    </button>
+                  </div>
+                </div>
+              </form>
+            </mat-card-content>
+
+            <mat-card-actions align="end">
+              <button mat-button (click)="backupForm.reset()">Reset</button>
+              <button mat-raised-button color="primary" (click)="saveBackup()" [disabled]="!backupForm.valid || isSaving">
+                Save Backup Settings
+              </button>
+            </mat-card-actions>
+          </mat-card>
+        </div>
+      </mat-tab>
+    </mat-tab-group>
+  </div>
+</div>

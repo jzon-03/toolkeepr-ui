@@ -1,0 +1,735 @@
+<div class="reports-container">
+  <!-- Header Section -->
+  <div class="page-header">
+    <div class="header-content">
+      <div class="title-section">
+        <h1 class="page-title">
+          <mat-icon class="title-icon">assessment</mat-icon>
+          Reports & Analytics
+        </h1>
+        <p class="page-subtitle">Generate, schedule, and analyze comprehensive reports for your tool management system</p>
+      </div>
+      <div class="header-actions">
+        <div class="view-toggle">
+          <mat-button-toggle-group [value]="viewMode" (change)="setViewMode($event.value)">
+            <mat-button-toggle value="dashboard">
+              <mat-icon>dashboard</mat-icon>
+              Dashboard
+            </mat-button-toggle>
+            <mat-button-toggle value="reports">
+              <mat-icon>list_alt</mat-icon>
+              Reports
+            </mat-button-toggle>
+            <mat-button-toggle value="builder">
+              <mat-icon>build</mat-icon>
+              Builder
+            </mat-button-toggle>
+          </mat-button-toggle-group>
+        </div>
+        <button mat-raised-button color="primary" (click)="openReportBuilder()" class="add-btn">
+          <mat-icon>add</mat-icon>
+          New Report
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Dashboard View -->
+  <div class="dashboard-view" *ngIf="viewMode === 'dashboard'" [@slideInOut]>
+    <!-- Metrics Cards -->
+    <div class="metrics-grid">
+      <mat-card class="metric-card total">
+        <mat-card-content>
+          <div class="metric-content">
+            <div class="metric-info">
+              <h3>{{ dashboardMetrics.totalReports }}</h3>
+              <p>Total Reports</p>
+            </div>
+            <mat-icon class="metric-icon">assessment</mat-icon>
+          </div>
+        </mat-card-content>
+      </mat-card>
+
+      <mat-card class="metric-card scheduled">
+        <mat-card-content>
+          <div class="metric-content">
+            <div class="metric-info">
+              <h3>{{ dashboardMetrics.scheduledReports }}</h3>
+              <p>Scheduled Reports</p>
+            </div>
+            <mat-icon class="metric-icon">schedule</mat-icon>
+          </div>
+        </mat-card-content>
+      </mat-card>
+
+      <mat-card class="metric-card generated">
+        <mat-card-content>
+          <div class="metric-content">
+            <div class="metric-info">
+              <h3>{{ dashboardMetrics.reportsGeneratedToday }}</h3>
+              <p>Generated Today</p>
+            </div>
+            <mat-icon class="metric-icon">today</mat-icon>
+          </div>
+        </mat-card-content>
+      </mat-card>
+
+      <mat-card class="metric-card performance">
+        <mat-card-content>
+          <div class="metric-content">
+            <div class="metric-info">
+              <h3>{{ dashboardMetrics.averageExecutionTime }}s</h3>
+              <p>Avg. Execution Time</p>
+            </div>
+            <mat-icon class="metric-icon">speed</mat-icon>
+          </div>
+        </mat-card-content>
+      </mat-card>
+    </div>
+
+    <!-- Charts Section -->
+    <div class="charts-section">
+      <div class="chart-row">
+        <mat-card class="chart-card">
+          <mat-card-header>
+            <mat-card-title>Report Types Distribution</mat-card-title>
+          </mat-card-header>
+          <mat-card-content>
+            <div class="chart-container">
+              <canvas #dashboardChart></canvas>
+            </div>
+          </mat-card-content>
+        </mat-card>
+
+        <mat-card class="chart-card">
+          <mat-card-header>
+            <mat-card-title>Generation Trends</mat-card-title>
+          </mat-card-header>
+          <mat-card-content>
+            <div class="chart-container">
+              <canvas #trendChart></canvas>
+            </div>
+          </mat-card-content>
+        </mat-card>
+      </div>
+    </div>
+
+    <!-- Recent Activity -->
+    <mat-card class="activity-card">
+      <mat-card-header>
+        <mat-card-title>
+          <mat-icon>history</mat-icon>
+          Recent Activity
+        </mat-card-title>
+      </mat-card-header>
+      <mat-card-content>
+        <div class="activity-list">
+          <div class="activity-item" *ngFor="let activity of dashboardMetrics.recentActivity">
+            <div class="activity-icon" [style.background-color]="getActivityColor(activity.type)">
+              <mat-icon>{{ getActivityIcon(activity.type) }}</mat-icon>
+            </div>
+            <div class="activity-content">
+              <div class="activity-main">
+                <span class="activity-report">{{ activity.reportName }}</span>
+                <span class="activity-action">{{ activity.type }}</span>
+              </div>
+              <div class="activity-meta">
+                <span class="activity-user">by {{ activity.user }}</span>
+                <span class="activity-time">{{ getRelativeTime(activity.timestamp) }}</span>
+              </div>
+              <div class="activity-details">{{ activity.details }}</div>
+            </div>
+          </div>
+        </div>
+      </mat-card-content>
+    </mat-card>
+
+    <!-- Popular Report Types -->
+    <mat-card class="popular-types-card">
+      <mat-card-header>
+        <mat-card-title>
+          <mat-icon>trending_up</mat-icon>
+          Popular Report Types
+        </mat-card-title>
+      </mat-card-header>
+      <mat-card-content>
+        <div class="popular-types-list">
+          <div class="type-item" *ngFor="let type of dashboardMetrics.popularReportTypes">
+            <div class="type-bar">
+              <div class="type-label">{{ type.type }}</div>
+              <div class="type-progress">
+                <mat-progress-bar 
+                  [value]="(type.count / dashboardMetrics.popularReportTypes[0].count) * 100"
+                  color="primary">
+                </mat-progress-bar>
+                <span class="type-count">{{ type.count }}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </mat-card-content>
+    </mat-card>
+  </div>
+
+  <!-- Reports List View -->
+  <div class="reports-view" *ngIf="viewMode === 'reports'" [@slideInOut]>
+    <!-- Filters and Search -->
+    <mat-card class="filters-card">
+      <mat-card-content>
+        <div class="filters-content">
+          <div class="filter-section">
+            <div class="type-filters">
+              <mat-chip-set>
+                <mat-chip-option (click)="setFilterType('all')" [selected]="filterType === 'all'">
+                  All Types
+                </mat-chip-option>
+                <mat-chip-option *ngFor="let type of reportTypes" 
+                                (click)="setFilterType(type.value)" 
+                                [selected]="filterType === type.value">
+                  <mat-icon [style.color]="type.color">{{ type.icon }}</mat-icon>
+                  {{ type.label }}
+                </mat-chip-option>
+              </mat-chip-set>
+            </div>
+            
+            <div class="category-filters">
+              <mat-chip-set>
+                <mat-chip-option (click)="setFilterCategory('all')" [selected]="filterCategory === 'all'">
+                  All Categories
+                </mat-chip-option>
+                <mat-chip-option *ngFor="let category of reportCategories" 
+                                (click)="setFilterCategory(category)" 
+                                [selected]="filterCategory === category">
+                  {{ category }}
+                </mat-chip-option>
+              </mat-chip-set>
+            </div>
+          </div>
+
+          <mat-form-field appearance="outline" class="search-field">
+            <mat-label>Search Reports</mat-label>
+            <input matInput (keyup)="onSearchChange($event)" placeholder="Search by name, description, or tags...">
+            <mat-icon matPrefix>search</mat-icon>
+          </mat-form-field>
+        </div>
+      </mat-card-content>
+    </mat-card>
+
+    <!-- Reports Table -->
+    <mat-card class="reports-table-card">
+      <div class="table-container">
+        <table mat-table [dataSource]="dataSource" matSort class="reports-table">
+          <!-- Name Column -->
+          <ng-container matColumnDef="name">
+            <th mat-header-cell *matHeaderCellDef mat-sort-header>Report Name</th>
+            <td mat-cell *matCellDef="let report">
+              <div class="name-cell">
+                <div class="name-info">
+                  <span class="report-name">{{ report.name }}</span>
+                  <span class="report-description">{{ report.description }}</span>
+                </div>
+              </div>
+            </td>
+          </ng-container>
+
+          <!-- Type Column -->
+          <ng-container matColumnDef="type">
+            <th mat-header-cell *matHeaderCellDef mat-sort-header>Type</th>
+            <td mat-cell *matCellDef="let report">
+              <div class="type-cell">
+                <mat-icon [style.color]="getTypeInfo(report.type).color">{{ getTypeInfo(report.type).icon }}</mat-icon>
+                <span>{{ getTypeInfo(report.type).label }}</span>
+              </div>
+            </td>
+          </ng-container>
+
+          <!-- Category Column -->
+          <ng-container matColumnDef="category">
+            <th mat-header-cell *matHeaderCellDef mat-sort-header>Category</th>
+            <td mat-cell *matCellDef="let report">
+              <mat-chip color="primary">{{ report.category }}</mat-chip>
+            </td>
+          </ng-container>
+
+          <!-- Last Generated Column -->
+          <ng-container matColumnDef="lastGenerated">
+            <th mat-header-cell *matHeaderCellDef mat-sort-header>Last Generated</th>
+            <td mat-cell *matCellDef="let report">
+              <div class="generated-cell">
+                <span class="generated-time">{{ formatDate(report.lastGenerated) }}</span>
+                <span class="generated-relative" *ngIf="report.lastGenerated">
+                  {{ getRelativeTime(report.lastGenerated) }}
+                </span>
+              </div>
+            </td>
+          </ng-container>
+
+          <!-- Schedule Column -->
+          <ng-container matColumnDef="schedule">
+            <th mat-header-cell *matHeaderCellDef mat-sort-header>Schedule</th>
+            <td mat-cell *matCellDef="let report">
+              <div class="schedule-cell" *ngIf="report.isScheduled; else noSchedule">
+                <mat-icon color="primary">{{ getScheduleInfo(report.scheduleFrequency).icon }}</mat-icon>
+                <span>{{ getScheduleInfo(report.scheduleFrequency).label }}</span>
+              </div>
+              <ng-template #noSchedule>
+                <span class="no-schedule">Manual</span>
+              </ng-template>
+            </td>
+          </ng-container>
+
+          <!-- Status Column -->
+          <ng-container matColumnDef="status">
+            <th mat-header-cell *matHeaderCellDef mat-sort-header>Status</th>
+            <td mat-cell *matCellDef="let report">
+              <mat-chip [color]="report.isActive ? 'primary' : 'warn'">
+                {{ report.isActive ? 'Active' : 'Inactive' }}
+              </mat-chip>
+            </td>
+          </ng-container>
+
+          <!-- Actions Column -->
+          <ng-container matColumnDef="actions">
+            <th mat-header-cell *matHeaderCellDef>Actions</th>
+            <td mat-cell *matCellDef="let report">
+              <div class="action-buttons">
+                <button mat-icon-button color="primary" (click)="generateReport(report)" matTooltip="Generate Report">
+                  <mat-icon>play_arrow</mat-icon>
+                </button>
+                <button mat-icon-button color="accent" (click)="openScheduleModal(report)" matTooltip="Schedule">
+                  <mat-icon>schedule</mat-icon>
+                </button>
+                <button mat-icon-button color="primary" (click)="openEditReport(report)" matTooltip="Edit">
+                  <mat-icon>edit</mat-icon>
+                </button>
+                <button mat-icon-button (click)="duplicateReport(report)" matTooltip="Duplicate">
+                  <mat-icon>content_copy</mat-icon>
+                </button>
+                <button mat-icon-button color="warn" (click)="confirmDelete(report)" matTooltip="Delete">
+                  <mat-icon>delete</mat-icon>
+                </button>
+              </div>
+            </td>
+          </ng-container>
+
+          <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+          <tr mat-row *matRowDef="let row; columns: displayedColumns;" 
+              [class.inactive-row]="!row.isActive"></tr>
+
+          <tr class="mat-row" *matNoDataRow>
+            <td class="mat-cell no-data-cell" [attr.colspan]="displayedColumns.length">
+              <div class="no-data">
+                <mat-icon>assessment</mat-icon>
+                <p>No reports found</p>
+                <button mat-raised-button color="primary" (click)="openReportBuilder()">
+                  <mat-icon>add</mat-icon>
+                  Create First Report
+                </button>
+              </div>
+            </td>
+          </tr>
+        </table>
+      </div>
+
+      <mat-paginator [pageSizeOptions]="[5, 10, 25, 50]" showFirstLastButtons></mat-paginator>
+    </mat-card>
+  </div>
+
+  <!-- Report Builder View -->
+  <div class="builder-view" *ngIf="viewMode === 'builder'" [@slideInOut]>
+    <mat-card class="builder-card">
+      <mat-card-header>
+        <mat-card-title>
+          <mat-icon>build</mat-icon>
+          Report Builder
+        </mat-card-title>
+        <mat-card-subtitle>Create custom reports with advanced filtering and analytics</mat-card-subtitle>
+      </mat-card-header>
+
+      <mat-card-content>
+        <div class="builder-content">
+          <!-- Report Types Grid -->
+          <div class="report-types-section">
+            <h3>Choose Report Type</h3>
+            <div class="report-types-grid">
+              <mat-card class="report-type-card" *ngFor="let type of reportTypes" (click)="reportForm.patchValue({type: type.value})">
+                <mat-card-content>
+                  <div class="type-header" [style.border-left]="'4px solid ' + type.color">
+                    <mat-icon [style.color]="type.color" class="type-icon">{{ type.icon }}</mat-icon>
+                    <div class="type-info">
+                      <h4>{{ type.label }}</h4>
+                      <p>{{ type.description }}</p>
+                    </div>
+                  </div>
+                </mat-card-content>
+              </mat-card>
+            </div>
+          </div>
+
+          <!-- Quick Templates -->
+          <div class="templates-section">
+            <h3>Quick Templates</h3>
+            <div class="templates-grid">
+              <mat-card class="template-card">
+                <mat-card-content>
+                  <mat-icon>inventory</mat-icon>
+                  <h4>Inventory Summary</h4>
+                  <p>Current tool inventory across all locations</p>
+                  <button mat-button color="primary">Use Template</button>
+                </mat-card-content>
+              </mat-card>
+
+              <mat-card class="template-card">
+                <mat-card-content>
+                  <mat-icon>exit_to_app</mat-icon>
+                  <h4>Checkout Activity</h4>
+                  <p>Tool checkout and return activity report</p>
+                  <button mat-button color="primary">Use Template</button>
+                </mat-card-content>
+              </mat-card>
+
+              <mat-card class="template-card">
+                <mat-card-content>
+                  <mat-icon>timeline</mat-icon>
+                  <h4>Usage Analytics</h4>
+                  <p>Tool usage patterns and trend analysis</p>
+                  <button mat-button color="primary">Use Template</button>
+                </mat-card-content>
+              </mat-card>
+
+              <mat-card class="template-card">
+                <mat-card-content>
+                  <mat-icon>build</mat-icon>
+                  <h4>Maintenance Schedule</h4>
+                  <p>Upcoming maintenance and service records</p>
+                  <button mat-button color="primary">Use Template</button>
+                </mat-card-content>
+              </mat-card>
+            </div>
+          </div>
+
+          <!-- Custom Builder Placeholder -->
+          <div class="custom-builder-section">
+            <h3>Custom Report Builder</h3>
+            <mat-card class="custom-builder-card">
+              <mat-card-content>
+                <div class="builder-placeholder">
+                  <mat-icon class="builder-icon">construction</mat-icon>
+                  <h4>Advanced Report Builder</h4>
+                  <p>Drag-and-drop report builder with custom fields, filters, and visualizations coming soon!</p>
+                  <div class="builder-features">
+                    <mat-chip-set>
+                      <mat-chip><mat-icon>drag_indicator</mat-icon>Drag & Drop</mat-chip>
+                      <mat-chip><mat-icon>filter_list</mat-icon>Custom Filters</mat-chip>
+                      <mat-chip><mat-icon>bar_chart</mat-icon>Visualizations</mat-chip>
+                      <mat-chip><mat-icon>schedule</mat-icon>Auto Scheduling</mat-chip>
+                    </mat-chip-set>
+                  </div>
+                </div>
+              </mat-card-content>
+            </mat-card>
+          </div>
+        </div>
+      </mat-card-content>
+    </mat-card>
+  </div>
+
+  <!-- Report Modal -->
+  <div class="modal-overlay" *ngIf="showReportModal || showBuilderModal" [@fadeInOut]>
+    <mat-card class="report-modal">
+      <mat-card-header>
+        <mat-card-title>
+          <mat-icon>{{ selectedReport ? 'edit' : 'add' }}</mat-icon>
+          {{ selectedReport ? 'Edit Report' : 'Create New Report' }}
+        </mat-card-title>
+        <button mat-icon-button class="close-btn" (click)="closeModal()">
+          <mat-icon>close</mat-icon>
+        </button>
+      </mat-card-header>
+
+      <mat-card-content>
+        <form [formGroup]="reportForm" (ngSubmit)="saveReport()">
+          <div class="form-sections">
+            <!-- Basic Information -->
+            <div class="form-section">
+              <h4>Basic Information</h4>
+              <div class="form-grid">
+                <mat-form-field appearance="outline">
+                  <mat-label>Report Name</mat-label>
+                  <input matInput formControlName="name" placeholder="Enter report name">
+                  <mat-icon matPrefix>label</mat-icon>
+                </mat-form-field>
+
+                <mat-form-field appearance="outline">
+                  <mat-label>Report Type</mat-label>
+                  <mat-select formControlName="type">
+                    <mat-option *ngFor="let type of reportTypes" [value]="type.value">
+                      <mat-icon [style.color]="type.color">{{ type.icon }}</mat-icon>
+                      {{ type.label }}
+                    </mat-option>
+                  </mat-select>
+                </mat-form-field>
+
+                <mat-form-field appearance="outline">
+                  <mat-label>Category</mat-label>
+                  <mat-select formControlName="category">
+                    <mat-option *ngFor="let category of reportCategories" [value]="category">
+                      {{ category }}
+                    </mat-option>
+                  </mat-select>
+                </mat-form-field>
+
+                <mat-form-field appearance="outline" class="description-field">
+                  <mat-label>Description</mat-label>
+                  <textarea matInput formControlName="description" rows="3" placeholder="Describe this report..."></textarea>
+                </mat-form-field>
+              </div>
+            </div>
+
+            <!-- Output Settings -->
+            <div class="form-section">
+              <h4>Output Settings</h4>
+              <div class="format-selection">
+                <div class="formats-grid">
+                  <div class="format-option" *ngFor="let format of reportFormats">
+                    <mat-checkbox 
+                      [checked]="reportForm.get('format')?.value?.includes(format.value)"
+                      (change)="toggleFormat(format.value, $event.checked)">
+                      <div class="format-content">
+                        <mat-icon [style.color]="format.color">{{ format.icon }}</mat-icon>
+                        <span>{{ format.label }}</span>
+                      </div>
+                    </mat-checkbox>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Tags -->
+            <div class="form-section">
+              <h4>Tags</h4>
+              <mat-form-field appearance="outline" class="tags-field">
+                <mat-label>Tags (comma-separated)</mat-label>
+                <input matInput placeholder="analytics, monthly, inventory">
+              </mat-form-field>
+            </div>
+
+            <!-- Status -->
+            <div class="form-section">
+              <h4>Status</h4>
+              <mat-slide-toggle formControlName="isActive" color="primary">
+                Active Report
+              </mat-slide-toggle>
+            </div>
+          </div>
+
+          <mat-card-actions align="end">
+            <button type="button" mat-button (click)="closeModal()">Cancel</button>
+            <button type="submit" mat-raised-button color="primary" [disabled]="reportForm.invalid || isLoading">
+              <mat-icon *ngIf="isLoading" class="spinning">refresh</mat-icon>
+              <mat-icon *ngIf="!isLoading">{{ selectedReport ? 'save' : 'add' }}</mat-icon>
+              {{ isLoading ? 'Saving...' : (selectedReport ? 'Update Report' : 'Create Report') }}
+            </button>
+          </mat-card-actions>
+        </form>
+      </mat-card-content>
+    </mat-card>
+  </div>
+
+  <!-- Schedule Modal -->
+  <div class="modal-overlay" *ngIf="showScheduleModal" [@fadeInOut]>
+    <mat-card class="schedule-modal">
+      <mat-card-header>
+        <mat-card-title>
+          <mat-icon>schedule</mat-icon>
+          Schedule Report: {{ selectedReport?.name }}
+        </mat-card-title>
+        <button mat-icon-button class="close-btn" (click)="closeModal()">
+          <mat-icon>close</mat-icon>
+        </button>
+      </mat-card-header>
+
+      <mat-card-content>
+        <form [formGroup]="scheduleForm" (ngSubmit)="saveSchedule()">
+          <div class="schedule-content">
+            <div class="schedule-toggle">
+              <mat-slide-toggle formControlName="enabled" color="primary">
+                Enable Scheduled Generation
+              </mat-slide-toggle>
+            </div>
+
+            <div class="schedule-settings" *ngIf="scheduleForm.get('enabled')?.value">
+              <div class="form-grid">
+                <mat-form-field appearance="outline">
+                  <mat-label>Frequency</mat-label>
+                  <mat-select formControlName="frequency">
+                    <mat-option *ngFor="let freq of scheduleFrequencies" [value]="freq.value">
+                      <mat-icon>{{ freq.icon }}</mat-icon>
+                      {{ freq.label }}
+                    </mat-option>
+                  </mat-select>
+                </mat-form-field>
+
+                <mat-form-field appearance="outline">
+                  <mat-label>Start Date</mat-label>
+                  <input matInput [matDatepicker]="startPicker" formControlName="startDate">
+                  <mat-datepicker-toggle matSuffix [for]="startPicker"></mat-datepicker-toggle>
+                  <mat-datepicker #startPicker></mat-datepicker>
+                </mat-form-field>
+
+                <mat-form-field appearance="outline">
+                  <mat-label>Time</mat-label>
+                  <input matInput type="time" formControlName="time">
+                </mat-form-field>
+
+                <mat-form-field appearance="outline">
+                  <mat-label>Output Format</mat-label>
+                  <mat-select formControlName="format">
+                    <mat-option *ngFor="let format of reportFormats" [value]="format.value">
+                      <mat-icon [style.color]="format.color">{{ format.icon }}</mat-icon>
+                      {{ format.label }}
+                    </mat-option>
+                  </mat-select>
+                </mat-form-field>
+
+                <mat-form-field appearance="outline" class="recipients-field">
+                  <mat-label>Recipients (comma-separated emails)</mat-label>
+                  <textarea matInput rows="3" formControlName="recipients" 
+                           placeholder="user1@company.com, user2@company.com"></textarea>
+                </mat-form-field>
+              </div>
+            </div>
+          </div>
+
+          <mat-card-actions align="end">
+            <button type="button" mat-button (click)="closeModal()">Cancel</button>
+            <button type="submit" mat-raised-button color="primary" [disabled]="scheduleForm.invalid || isLoading">
+              <mat-icon *ngIf="isLoading" class="spinning">refresh</mat-icon>
+              <mat-icon *ngIf="!isLoading">schedule</mat-icon>
+              {{ isLoading ? 'Saving...' : 'Save Schedule' }}
+            </button>
+          </mat-card-actions>
+        </form>
+      </mat-card-content>
+    </mat-card>
+  </div>
+
+  <!-- Preview Modal -->
+  <div class="modal-overlay" *ngIf="showPreviewModal" [@fadeInOut]>
+    <mat-card class="preview-modal">
+      <mat-card-header>
+        <mat-card-title>
+          <mat-icon>visibility</mat-icon>
+          Report Preview: {{ selectedReport?.name }}
+        </mat-card-title>
+        <button mat-icon-button class="close-btn" (click)="closeModal()">
+          <mat-icon>close</mat-icon>
+        </button>
+      </mat-card-header>
+
+      <mat-card-content *ngIf="reportResult">
+        <div class="preview-content">
+          <!-- Generation Info -->
+          <div class="generation-info">
+            <div class="info-grid">
+              <div class="info-item">
+                <span class="label">Generated:</span>
+                <span class="value">{{ formatDate(reportResult.generatedDate) }}</span>
+              </div>
+              <div class="info-item">
+                <span class="label">Records:</span>
+                <span class="value">{{ reportResult.recordCount | number }}</span>
+              </div>
+              <div class="info-item">
+                <span class="label">Execution Time:</span>
+                <span class="value">{{ reportResult.executionTime }}s</span>
+              </div>
+              <div class="info-item">
+                <span class="label">Generated By:</span>
+                <span class="value">{{ reportResult.generatedBy }}</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Key Metrics -->
+          <div class="metrics-section" *ngIf="reportResult.summary.keyMetrics">
+            <h4>Key Metrics</h4>
+            <div class="key-metrics">
+              <div class="metric-item" *ngFor="let metric of reportResult.summary.keyMetrics">
+                <div class="metric-label">{{ metric.label }}</div>
+                <div class="metric-value">
+                  {{ metric.value }}
+                  <mat-icon *ngIf="metric.trend" 
+                           [class]="'trend-' + metric.trend"
+                           [color]="metric.trend === 'up' ? 'primary' : metric.trend === 'down' ? 'warn' : ''">
+                    {{ metric.trend === 'up' ? 'trending_up' : metric.trend === 'down' ? 'trending_down' : 'trending_flat' }}
+                  </mat-icon>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Loading State -->
+          <div class="generation-loading" *ngIf="isGenerating">
+            <mat-progress-bar mode="indeterminate"></mat-progress-bar>
+            <div class="loading-text">
+              <mat-icon class="spinning">refresh</mat-icon>
+              <span>Generating report...</span>
+            </div>
+          </div>
+
+          <!-- Success State -->
+          <div class="generation-success" *ngIf="!isGenerating && reportResult">
+            <mat-icon color="primary">check_circle</mat-icon>
+            <span>Report generated successfully!</span>
+          </div>
+        </div>
+      </mat-card-content>
+
+      <mat-card-actions align="end" *ngIf="!isGenerating">
+        <button mat-button color="accent" *ngFor="let format of selectedReport?.format" 
+                (click)="exportReport(selectedReport!, format)">
+          <mat-icon>{{ getFormatInfo(format).icon }}</mat-icon>
+          Export {{ getFormatInfo(format).label }}
+        </button>
+        <button mat-button (click)="closeModal()">Close</button>
+      </mat-card-actions>
+    </mat-card>
+  </div>
+
+  <!-- Delete Confirmation Modal -->
+  <div class="modal-overlay" *ngIf="showDeleteConfirm" [@fadeInOut]>
+    <mat-card class="confirm-modal">
+      <mat-card-header>
+        <mat-card-title class="delete-title">
+          <mat-icon class="delete-icon">warning</mat-icon>
+          Confirm Report Deletion
+        </mat-card-title>
+      </mat-card-header>
+
+      <mat-card-content>
+        <div class="delete-content">
+          <p>Are you sure you want to delete the report <strong>"{{ reportToDelete?.name }}"</strong>?</p>
+          <div class="warning-info">
+            <mat-icon>info</mat-icon>
+            <div>
+              <p><strong>This action cannot be undone.</strong></p>
+              <p>All scheduled instances and historical data will be permanently removed.</p>
+              <p *ngIf="reportToDelete?.isScheduled" class="schedule-warning">
+                This report is currently scheduled for automatic generation.
+              </p>
+            </div>
+          </div>
+        </div>
+      </mat-card-content>
+
+      <mat-card-actions align="end">
+        <button mat-button (click)="closeModal()">Cancel</button>
+        <button mat-raised-button color="warn" (click)="deleteReport()">
+          <mat-icon>delete</mat-icon>
+          Delete Report
+        </button>
+      </mat-card-actions>
+    </mat-card>
+  </div>
+</div>

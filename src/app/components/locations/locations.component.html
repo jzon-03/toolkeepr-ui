@@ -1,0 +1,732 @@
+<div class="locations-container">
+  <!-- Header Section -->
+  <div class="page-header">
+    <div class="header-content">
+      <div class="title-section">
+        <h1 class="page-title">
+          <mat-icon class="title-icon">place</mat-icon>
+          Location Management
+        </h1>
+        <p class="page-subtitle">Manage storage locations and track tool distribution across facilities</p>
+      </div>
+      <div class="header-actions">
+        <button mat-raised-button color="primary" (click)="openAddModal()" class="add-btn">
+          <mat-icon>add_location</mat-icon>
+          Add Location
+        </button>
+        <button mat-stroked-button color="primary" (click)="exportLocations()" class="export-btn">
+          <mat-icon>download</mat-icon>
+          Export
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Stats Dashboard -->
+  <div class="stats-grid" [@slideInOut]>
+    <mat-card class="stat-card total">
+      <mat-card-content>
+        <div class="stat-content">
+          <div class="stat-info">
+            <h3>{{ stats.totalLocations }}</h3>
+            <p>Total Locations</p>
+          </div>
+          <mat-icon class="stat-icon">place</mat-icon>
+        </div>
+      </mat-card-content>
+    </mat-card>
+
+    <mat-card class="stat-card active">
+      <mat-card-content>
+        <div class="stat-content">
+          <div class="stat-info">
+            <h3>{{ stats.activeLocations }}</h3>
+            <p>Active Locations</p>
+          </div>
+          <mat-icon class="stat-icon">check_circle</mat-icon>
+        </div>
+      </mat-card-content>
+    </mat-card>
+
+    <mat-card class="stat-card capacity">
+      <mat-card-content>
+        <div class="stat-content">
+          <div class="stat-info">
+            <h3>{{ stats.totalCapacity }}</h3>
+            <p>Total Capacity</p>
+          </div>
+          <mat-icon class="stat-icon">inventory</mat-icon>
+        </div>
+      </mat-card-content>
+    </mat-card>
+
+    <mat-card class="stat-card occupancy">
+      <mat-card-content>
+        <div class="stat-content">
+          <div class="stat-info">
+            <h3>{{ stats.occupancyRate }}%</h3>
+            <p>Occupancy Rate</p>
+          </div>
+          <mat-icon class="stat-icon">assessment</mat-icon>
+        </div>
+      </mat-card-content>
+    </mat-card>
+  </div>
+
+  <!-- Controls Section -->
+  <mat-card class="controls-card">
+    <mat-card-content>
+      <div class="controls-content">
+        <div class="filter-section">
+          <div class="type-filters">
+            <mat-chip-set>
+              <mat-chip-option (click)="setFilterType('all')" [selected]="filterType === 'all'">
+                All Types
+              </mat-chip-option>
+              <mat-chip-option *ngFor="let type of locationTypes" 
+                              (click)="setFilterType(type.value)" 
+                              [selected]="filterType === type.value">
+                <mat-icon [style.color]="type.color">{{ type.icon }}</mat-icon>
+                {{ type.label }}
+              </mat-chip-option>
+            </mat-chip-set>
+          </div>
+          
+          <div class="status-filters">
+            <mat-chip-set>
+              <mat-chip-option (click)="setFilterStatus('all')" [selected]="filterStatus === 'all'">
+                All Status
+              </mat-chip-option>
+              <mat-chip-option (click)="setFilterStatus('active')" [selected]="filterStatus === 'active'">
+                Active ({{ stats.activeLocations }})
+              </mat-chip-option>
+              <mat-chip-option (click)="setFilterStatus('inactive')" [selected]="filterStatus === 'inactive'">
+                Inactive ({{ stats.totalLocations - stats.activeLocations }})
+              </mat-chip-option>
+            </mat-chip-set>
+          </div>
+        </div>
+
+        <div class="view-controls">
+          <mat-form-field appearance="outline" class="search-field">
+            <mat-label>Search Locations</mat-label>
+            <input matInput (keyup)="applySearchFilter($event)" placeholder="Search by name, type, or address...">
+            <mat-icon matPrefix>search</mat-icon>
+          </mat-form-field>
+
+          <div class="view-toggle">
+            <mat-button-toggle-group [value]="viewMode" (change)="setViewMode($event.value)">
+              <mat-button-toggle value="grid">
+                <mat-icon>grid_view</mat-icon>
+              </mat-button-toggle>
+              <mat-button-toggle value="list">
+                <mat-icon>view_list</mat-icon>
+              </mat-button-toggle>
+              <mat-button-toggle value="map">
+                <mat-icon>map</mat-icon>
+              </mat-button-toggle>
+            </mat-button-toggle-group>
+          </div>
+        </div>
+      </div>
+    </mat-card-content>
+  </mat-card>
+
+  <!-- Grid View -->
+  <div class="locations-grid" *ngIf="viewMode === 'grid'" [@slideInOut]>
+    <mat-card class="location-card" 
+              *ngFor="let location of dataSource.data" 
+              [class.inactive-card]="!location.isActive"
+              (click)="openDetailsModal(location)">
+      <mat-card-header class="location-header" [style.border-left]="'5px solid ' + getTypeInfo(location.type).color">
+        <div class="location-header-content">
+          <mat-icon class="location-type-icon" [style.color]="getTypeInfo(location.type).color">
+            {{ getTypeInfo(location.type).icon }}
+          </mat-icon>
+          <div class="location-title-section">
+            <mat-card-title class="location-title">{{ location.name }}</mat-card-title>
+            <mat-card-subtitle class="location-subtitle">{{ location.id }} • {{ getTypeInfo(location.type).label }}</mat-card-subtitle>
+          </div>
+        </div>
+        <div class="status-badges">
+          <mat-chip [color]="location.isActive ? 'primary' : 'warn'">
+            {{ location.isActive ? 'Active' : 'Inactive' }}
+          </mat-chip>
+          <mat-chip [color]="getAccessInfo(location.accessLevel).color">
+            <mat-icon>{{ getAccessInfo(location.accessLevel).icon }}</mat-icon>
+            {{ getAccessInfo(location.accessLevel).label }}
+          </mat-chip>
+        </div>
+      </mat-card-header>
+
+      <mat-card-content class="location-content">
+        <p class="location-description">{{ location.description }}</p>
+        
+        <div class="location-details">
+          <div class="detail-item" *ngIf="location.address">
+            <mat-icon>location_on</mat-icon>
+            <span>{{ location.address }}</span>
+          </div>
+          <div class="detail-item" *ngIf="location.responsiblePerson">
+            <mat-icon>person</mat-icon>
+            <span>{{ location.responsiblePerson }}</span>
+          </div>
+          <div class="detail-item" *ngIf="location.contactInfo">
+            <mat-icon>contact_phone</mat-icon>
+            <span>{{ location.contactInfo }}</span>
+          </div>
+        </div>
+
+        <div class="capacity-section">
+          <div class="capacity-header">
+            <span class="capacity-label">Capacity Usage</span>
+            <span class="capacity-numbers">{{ location.currentToolCount }} / {{ location.capacity }}</span>
+          </div>
+          <mat-progress-bar 
+            [value]="getOccupancyPercentage(location)" 
+            [color]="getOccupancyColor(getOccupancyPercentage(location))"
+            class="capacity-bar">
+          </mat-progress-bar>
+          <span class="capacity-percentage">{{ getOccupancyPercentage(location) | number:'1.0-0' }}% occupied</span>
+        </div>
+
+        <div class="features-section" *ngIf="location.features && location.features.length > 0">
+          <div class="features-label">Features:</div>
+          <div class="features-chips">
+            <mat-chip-set>
+              <mat-chip *ngFor="let feature of location.features.slice(0, 3)">{{ feature }}</mat-chip>
+              <mat-chip *ngIf="location.features.length > 3" class="more-features">
+                +{{ location.features.length - 3 }} more
+              </mat-chip>
+            </mat-chip-set>
+          </div>
+        </div>
+      </mat-card-content>
+
+      <mat-card-actions class="location-actions" (click)="$event.stopPropagation()">
+        <button mat-button color="primary" (click)="openEditModal(location)">
+          <mat-icon>edit</mat-icon>
+          Edit
+        </button>
+        <button mat-button color="accent" (click)="generateQRCode(location)">
+          <mat-icon>qr_code</mat-icon>
+          QR Code
+        </button>
+        <button mat-button 
+                [color]="location.isActive ? 'warn' : 'primary'" 
+                (click)="toggleLocationStatus(location)">
+          <mat-icon>{{ location.isActive ? 'pause' : 'play_arrow' }}</mat-icon>
+          {{ location.isActive ? 'Deactivate' : 'Activate' }}
+        </button>
+        <button mat-button color="warn" (click)="confirmDelete(location)">
+          <mat-icon>delete</mat-icon>
+          Delete
+        </button>
+      </mat-card-actions>
+    </mat-card>
+  </div>
+
+  <!-- List View -->
+  <mat-card class="list-view-card" *ngIf="viewMode === 'list'">
+    <div class="table-container">
+      <table mat-table [dataSource]="dataSource" matSort class="locations-table">
+        <!-- ID Column -->
+        <ng-container matColumnDef="id">
+          <th mat-header-cell *matHeaderCellDef mat-sort-header>ID</th>
+          <td mat-cell *matCellDef="let location">
+            <span class="location-id">{{ location.id }}</span>
+          </td>
+        </ng-container>
+
+        <!-- Name Column -->
+        <ng-container matColumnDef="name">
+          <th mat-header-cell *matHeaderCellDef mat-sort-header>Location</th>
+          <td mat-cell *matCellDef="let location">
+            <div class="name-cell">
+              <div class="name-info">
+                <span class="location-name">{{ location.name }}</span>
+                <span class="location-address" *ngIf="location.address">{{ location.address }}</span>
+              </div>
+            </div>
+          </td>
+        </ng-container>
+
+        <!-- Type Column -->
+        <ng-container matColumnDef="type">
+          <th mat-header-cell *matHeaderCellDef mat-sort-header>Type</th>
+          <td mat-cell *matCellDef="let location">
+            <div class="type-cell">
+              <mat-icon [style.color]="getTypeInfo(location.type).color">{{ getTypeInfo(location.type).icon }}</mat-icon>
+              <span>{{ getTypeInfo(location.type).label }}</span>
+            </div>
+          </td>
+        </ng-container>
+
+        <!-- Capacity Column -->
+        <ng-container matColumnDef="capacity">
+          <th mat-header-cell *matHeaderCellDef mat-sort-header>Capacity</th>
+          <td mat-cell *matCellDef="let location">
+            <div class="capacity-cell">
+              <span class="capacity-number">{{ location.capacity }}</span>
+              <span class="capacity-unit">tools</span>
+            </div>
+          </td>
+        </ng-container>
+
+        <!-- Occupancy Column -->
+        <ng-container matColumnDef="occupancy">
+          <th mat-header-cell *matHeaderCellDef mat-sort-header>Occupancy</th>
+          <td mat-cell *matCellDef="let location">
+            <div class="occupancy-cell">
+              <div class="occupancy-progress">
+                <mat-progress-bar 
+                  [value]="getOccupancyPercentage(location)" 
+                  [color]="getOccupancyColor(getOccupancyPercentage(location))"
+                  class="mini-progress">
+                </mat-progress-bar>
+                <span class="occupancy-text">{{ getOccupancyPercentage(location) | number:'1.0-0' }}%</span>
+              </div>
+              <span class="occupancy-details">{{ location.currentToolCount }}/{{ location.capacity }}</span>
+            </div>
+          </td>
+        </ng-container>
+
+        <!-- Access Column -->
+        <ng-container matColumnDef="access">
+          <th mat-header-cell *matHeaderCellDef mat-sort-header>Access</th>
+          <td mat-cell *matCellDef="let location">
+            <mat-chip [color]="getAccessInfo(location.accessLevel).color">
+              <mat-icon>{{ getAccessInfo(location.accessLevel).icon }}</mat-icon>
+              {{ getAccessInfo(location.accessLevel).label }}
+            </mat-chip>
+          </td>
+        </ng-container>
+
+        <!-- Responsible Column -->
+        <ng-container matColumnDef="responsible">
+          <th mat-header-cell *matHeaderCellDef mat-sort-header>Responsible</th>
+          <td mat-cell *matCellDef="let location">
+            <div class="responsible-cell" *ngIf="location.responsiblePerson">
+              <mat-icon class="person-icon">person</mat-icon>
+              <div class="responsible-info">
+                <span class="responsible-name">{{ location.responsiblePerson }}</span>
+                <span class="responsible-contact" *ngIf="location.contactInfo">{{ location.contactInfo }}</span>
+              </div>
+            </div>
+          </td>
+        </ng-container>
+
+        <!-- Status Column -->
+        <ng-container matColumnDef="status">
+          <th mat-header-cell *matHeaderCellDef mat-sort-header>Status</th>
+          <td mat-cell *matCellDef="let location">
+            <mat-chip [color]="location.isActive ? 'primary' : 'warn'">
+              {{ location.isActive ? 'Active' : 'Inactive' }}
+            </mat-chip>
+          </td>
+        </ng-container>
+
+        <!-- Actions Column -->
+        <ng-container matColumnDef="actions">
+          <th mat-header-cell *matHeaderCellDef>Actions</th>
+          <td mat-cell *matCellDef="let location">
+            <div class="action-buttons">
+              <button mat-icon-button color="primary" (click)="openDetailsModal(location)" matTooltip="View Details">
+                <mat-icon>visibility</mat-icon>
+              </button>
+              <button mat-icon-button color="primary" (click)="openEditModal(location)" matTooltip="Edit Location">
+                <mat-icon>edit</mat-icon>
+              </button>
+              <button mat-icon-button color="accent" (click)="generateQRCode(location)" matTooltip="Generate QR Code">
+                <mat-icon>qr_code</mat-icon>
+              </button>
+              <button mat-icon-button 
+                      [color]="location.isActive ? 'warn' : 'primary'" 
+                      (click)="toggleLocationStatus(location)"
+                      [matTooltip]="location.isActive ? 'Deactivate' : 'Activate'">
+                <mat-icon>{{ location.isActive ? 'pause' : 'play_arrow' }}</mat-icon>
+              </button>
+              <button mat-icon-button color="warn" (click)="confirmDelete(location)" matTooltip="Delete Location">
+                <mat-icon>delete</mat-icon>
+              </button>
+            </div>
+          </td>
+        </ng-container>
+
+        <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+        <tr mat-row *matRowDef="let row; columns: displayedColumns;" 
+            [class.inactive-row]="!row.isActive"
+            (click)="openDetailsModal(row)"></tr>
+
+        <tr class="mat-row" *matNoDataRow>
+          <td class="mat-cell no-data-cell" [attr.colspan]="displayedColumns.length">
+            <div class="no-data">
+              <mat-icon>place</mat-icon>
+              <p>No locations found</p>
+              <button mat-raised-button color="primary" (click)="openAddModal()">
+                <mat-icon>add_location</mat-icon>
+                Add First Location
+              </button>
+            </div>
+          </td>
+        </tr>
+      </table>
+    </div>
+
+    <mat-paginator [pageSizeOptions]="[5, 10, 25, 50]" showFirstLastButtons></mat-paginator>
+  </mat-card>
+
+  <!-- Map View Placeholder -->
+  <mat-card class="map-view-card" *ngIf="viewMode === 'map'">
+    <mat-card-content>
+      <div class="map-placeholder">
+        <mat-icon class="map-icon">map</mat-icon>
+        <h3>Interactive Map View</h3>
+        <p>Map integration coming soon! This will show all location coordinates on an interactive map.</p>
+        <div class="map-features">
+          <mat-chip-set>
+            <mat-chip><mat-icon>location_on</mat-icon>GPS Coordinates</mat-chip>
+            <mat-chip><mat-icon>directions</mat-icon>Route Planning</mat-chip>
+            <mat-chip><mat-icon>layers</mat-icon>Floor Plans</mat-chip>
+            <mat-chip><mat-icon>search</mat-icon>Location Search</mat-chip>
+          </mat-chip-set>
+        </div>
+      </div>
+    </mat-card-content>
+  </mat-card>
+
+  <!-- Add/Edit Modal -->
+  <div class="modal-overlay" *ngIf="showAddModal || showEditModal" [@fadeInOut]>
+    <mat-card class="location-modal">
+      <mat-card-header>
+        <mat-card-title>
+          <mat-icon>{{ editingLocation ? 'edit_location' : 'add_location' }}</mat-icon>
+          {{ editingLocation ? 'Edit Location' : 'Add New Location' }}
+        </mat-card-title>
+        <button mat-icon-button class="close-btn" (click)="closeModal()">
+          <mat-icon>close</mat-icon>
+        </button>
+      </mat-card-header>
+
+      <mat-card-content>
+        <form [formGroup]="locationForm" (ngSubmit)="saveLocation()">
+          <div class="form-sections">
+            <!-- Basic Information -->
+            <div class="form-section">
+              <h4>Basic Information</h4>
+              <div class="form-grid">
+                <mat-form-field appearance="outline">
+                  <mat-label>Location Name</mat-label>
+                  <input matInput formControlName="name" placeholder="Enter location name" maxlength="100">
+                  <mat-icon matPrefix>label</mat-icon>
+                  <mat-hint>{{ locationForm.get('name')?.value?.length || 0 }}/100</mat-hint>
+                  <mat-error *ngIf="locationForm.get('name')?.hasError('required')">
+                    Location name is required
+                  </mat-error>
+                  <mat-error *ngIf="locationForm.get('name')?.hasError('minlength')">
+                    Name must be at least 2 characters
+                  </mat-error>
+                </mat-form-field>
+
+                <mat-form-field appearance="outline">
+                  <mat-label>Location Type</mat-label>
+                  <mat-select formControlName="type">
+                    <mat-option *ngFor="let type of locationTypes" [value]="type.value">
+                      <mat-icon [style.color]="type.color">{{ type.icon }}</mat-icon>
+                      {{ type.label }}
+                    </mat-option>
+                  </mat-select>
+                  <mat-icon matPrefix>category</mat-icon>
+                </mat-form-field>
+
+                <mat-form-field appearance="outline" class="description-field">
+                  <mat-label>Description</mat-label>
+                  <textarea matInput formControlName="description" rows="3" placeholder="Describe this location..." maxlength="300"></textarea>
+                  <mat-icon matPrefix>description</mat-icon>
+                  <mat-hint>{{ locationForm.get('description')?.value?.length || 0 }}/300</mat-hint>
+                  <mat-error *ngIf="locationForm.get('description')?.hasError('required')">
+                    Description is required
+                  </mat-error>
+                </mat-form-field>
+
+                <mat-form-field appearance="outline" class="address-field">
+                  <mat-label>Address (Optional)</mat-label>
+                  <textarea matInput formControlName="address" rows="2" placeholder="Enter physical address..."></textarea>
+                  <mat-icon matPrefix>location_on</mat-icon>
+                </mat-form-field>
+              </div>
+            </div>
+
+            <!-- Capacity & Access -->
+            <div class="form-section">
+              <h4>Capacity & Access</h4>
+              <div class="form-grid">
+                <mat-form-field appearance="outline">
+                  <mat-label>Storage Capacity</mat-label>
+                  <input matInput formControlName="capacity" type="number" min="1" max="1000">
+                  <mat-icon matPrefix>inventory</mat-icon>
+                  <mat-hint>Maximum number of tools</mat-hint>
+                  <mat-error *ngIf="locationForm.get('capacity')?.hasError('required')">
+                    Capacity is required
+                  </mat-error>
+                  <mat-error *ngIf="locationForm.get('capacity')?.hasError('min')">
+                    Minimum capacity is 1
+                  </mat-error>
+                  <mat-error *ngIf="locationForm.get('capacity')?.hasError('max')">
+                    Maximum capacity is 1000
+                  </mat-error>
+                </mat-form-field>
+
+                <mat-form-field appearance="outline">
+                  <mat-label>Access Level</mat-label>
+                  <mat-select formControlName="accessLevel">
+                    <mat-option *ngFor="let access of accessLevels" [value]="access.value">
+                      <mat-icon [color]="access.color">{{ access.icon }}</mat-icon>
+                      {{ access.label }}
+                    </mat-option>
+                  </mat-select>
+                  <mat-icon matPrefix>security</mat-icon>
+                </mat-form-field>
+
+                <div class="status-toggle">
+                  <mat-slide-toggle formControlName="isActive" color="primary">
+                    Active Location
+                  </mat-slide-toggle>
+                </div>
+              </div>
+            </div>
+
+            <!-- Responsibility -->
+            <div class="form-section">
+              <h4>Responsibility</h4>
+              <div class="form-grid">
+                <mat-form-field appearance="outline">
+                  <mat-label>Responsible Person</mat-label>
+                  <input matInput formControlName="responsiblePerson" placeholder="Name of person in charge">
+                  <mat-icon matPrefix>person</mat-icon>
+                  <mat-error *ngIf="locationForm.get('responsiblePerson')?.hasError('required')">
+                    Responsible person is required
+                  </mat-error>
+                </mat-form-field>
+
+                <mat-form-field appearance="outline">
+                  <mat-label>Contact Information</mat-label>
+                  <input matInput formControlName="contactInfo" placeholder="Phone, email, or extension">
+                  <mat-icon matPrefix>contact_phone</mat-icon>
+                </mat-form-field>
+              </div>
+            </div>
+
+            <!-- Features -->
+            <div class="form-section">
+              <h4>Location Features</h4>
+              <div class="features-selection">
+                <div class="features-grid">
+                  <mat-chip-set>
+                    <mat-chip-option 
+                      *ngFor="let feature of availableFeatures" 
+                      (click)="toggleFeature(feature)"
+                      [selected]="isFeatureSelected(feature)">
+                      {{ feature }}
+                    </mat-chip-option>
+                  </mat-chip-set>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <mat-card-actions align="end">
+            <button type="button" mat-button (click)="closeModal()">Cancel</button>
+            <button type="submit" 
+                    mat-raised-button 
+                    color="primary" 
+                    [disabled]="locationForm.invalid || isLoading">
+              <mat-icon *ngIf="isLoading" class="spinning">refresh</mat-icon>
+              <mat-icon *ngIf="!isLoading">{{ editingLocation ? 'save' : 'add_location' }}</mat-icon>
+              {{ isLoading ? 'Saving...' : (editingLocation ? 'Update Location' : 'Create Location') }}
+            </button>
+          </mat-card-actions>
+        </form>
+      </mat-card-content>
+    </mat-card>
+  </div>
+
+  <!-- Location Details Modal -->
+  <div class="modal-overlay" *ngIf="showDetailsModal" [@fadeInOut]>
+    <mat-card class="details-modal">
+      <mat-card-header>
+        <mat-card-title>
+          <mat-icon [style.color]="getTypeInfo(selectedLocation?.type || 'room').color">
+            {{ getTypeInfo(selectedLocation?.type || 'room').icon }}
+          </mat-icon>
+          {{ selectedLocation?.name }}
+        </mat-card-title>
+        <button mat-icon-button class="close-btn" (click)="closeModal()">
+          <mat-icon>close</mat-icon>
+        </button>
+      </mat-card-header>
+
+      <mat-card-content *ngIf="selectedLocation">
+        <div class="details-content">
+          <div class="details-header">
+            <div class="location-badges">
+              <mat-chip [color]="selectedLocation.isActive ? 'primary' : 'warn'">
+                {{ selectedLocation.isActive ? 'Active' : 'Inactive' }}
+              </mat-chip>
+              <mat-chip [color]="getAccessInfo(selectedLocation.accessLevel).color">
+                <mat-icon>{{ getAccessInfo(selectedLocation.accessLevel).icon }}</mat-icon>
+                {{ getAccessInfo(selectedLocation.accessLevel).label }}
+              </mat-chip>
+              <mat-chip class="type-chip" [style.background-color]="getTypeInfo(selectedLocation.type).color">
+                <mat-icon>{{ getTypeInfo(selectedLocation.type).icon }}</mat-icon>
+                {{ getTypeInfo(selectedLocation.type).label }}
+              </mat-chip>
+            </div>
+          </div>
+
+          <div class="details-sections">
+            <div class="details-section">
+              <h4><mat-icon>info</mat-icon>Basic Information</h4>
+              <div class="info-grid">
+                <div class="info-item">
+                  <span class="label">Location ID:</span>
+                  <span class="value">{{ selectedLocation.id }}</span>
+                </div>
+                <div class="info-item">
+                  <span class="label">Description:</span>
+                  <span class="value">{{ selectedLocation.description }}</span>
+                </div>
+                <div class="info-item" *ngIf="selectedLocation.address">
+                  <span class="label">Address:</span>
+                  <span class="value">{{ selectedLocation.address }}</span>
+                </div>
+                <div class="info-item" *ngIf="selectedLocation.qrCode">
+                  <span class="label">QR Code:</span>
+                  <span class="value qr-code">{{ selectedLocation.qrCode }}</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="details-section">
+              <h4><mat-icon>inventory</mat-icon>Capacity Information</h4>
+              <div class="capacity-details">
+                <div class="capacity-visual">
+                  <div class="capacity-circle">
+                    <div class="capacity-text">
+                      <span class="current">{{ selectedLocation.currentToolCount }}</span>
+                      <span class="separator">/</span>
+                      <span class="total">{{ selectedLocation.capacity }}</span>
+                    </div>
+                  </div>
+                  <mat-progress-bar 
+                    [value]="getOccupancyPercentage(selectedLocation)" 
+                    [color]="getOccupancyColor(getOccupancyPercentage(selectedLocation))"
+                    class="capacity-progress">
+                  </mat-progress-bar>
+                </div>
+                <div class="capacity-stats">
+                  <div class="stat">
+                    <span class="stat-label">Occupancy Rate:</span>
+                    <span class="stat-value">{{ getOccupancyPercentage(selectedLocation) | number:'1.0-0' }}%</span>
+                  </div>
+                  <div class="stat">
+                    <span class="stat-label">Available Spots:</span>
+                    <span class="stat-value">{{ selectedLocation.capacity - selectedLocation.currentToolCount }}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="details-section" *ngIf="selectedLocation.responsiblePerson">
+              <h4><mat-icon>person</mat-icon>Responsibility</h4>
+              <div class="responsibility-info">
+                <div class="responsible-card">
+                  <mat-icon class="person-avatar">account_circle</mat-icon>
+                  <div class="person-details">
+                    <span class="person-name">{{ selectedLocation.responsiblePerson }}</span>
+                    <span class="person-contact" *ngIf="selectedLocation.contactInfo">{{ selectedLocation.contactInfo }}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="details-section" *ngIf="selectedLocation.features && selectedLocation.features.length > 0">
+              <h4><mat-icon>star</mat-icon>Features</h4>
+              <div class="features-list">
+                <mat-chip-set>
+                  <mat-chip *ngFor="let feature of selectedLocation.features">
+                    <mat-icon>check</mat-icon>
+                    {{ feature }}
+                  </mat-chip>
+                </mat-chip-set>
+              </div>
+            </div>
+
+            <div class="details-section">
+              <h4><mat-icon>history</mat-icon>Timeline</h4>
+              <div class="timeline-info">
+                <div class="timeline-item">
+                  <mat-icon>add</mat-icon>
+                  <span class="timeline-label">Created:</span>
+                  <span class="timeline-value">{{ formatDate(selectedLocation.createdDate) }}</span>
+                </div>
+                <div class="timeline-item">
+                  <mat-icon>update</mat-icon>
+                  <span class="timeline-label">Last Modified:</span>
+                  <span class="timeline-value">{{ formatDate(selectedLocation.lastModified) }}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </mat-card-content>
+
+      <mat-card-actions align="end">
+        <button mat-button color="accent" (click)="generateQRCode(selectedLocation!)">
+          <mat-icon>qr_code</mat-icon>
+          Generate QR Code
+        </button>
+        <button mat-button color="primary" (click)="openEditModal(selectedLocation!)">
+          <mat-icon>edit</mat-icon>
+          Edit Location
+        </button>
+        <button mat-button (click)="closeModal()">Close</button>
+      </mat-card-actions>
+    </mat-card>
+  </div>
+
+  <!-- Delete Confirmation Modal -->
+  <div class="modal-overlay" *ngIf="showDeleteConfirm" [@fadeInOut]>
+    <mat-card class="confirm-modal">
+      <mat-card-header>
+        <mat-card-title class="delete-title">
+          <mat-icon class="delete-icon">warning</mat-icon>
+          Confirm Location Deletion
+        </mat-card-title>
+      </mat-card-header>
+
+      <mat-card-content>
+        <div class="delete-content">
+          <p>Are you sure you want to delete the location <strong>"{{ locationToDelete?.name }}"</strong>?</p>
+          <div class="warning-info">
+            <mat-icon>info</mat-icon>
+            <div>
+              <p><strong>This action cannot be undone.</strong></p>
+              <p>All tools currently stored in this location will need to be relocated.</p>
+              <p class="tool-count">{{ locationToDelete?.currentToolCount }} tools are currently stored here.</p>
+              <p class="capacity-info">Total capacity: {{ locationToDelete?.capacity }} tools</p>
+            </div>
+          </div>
+        </div>
+      </mat-card-content>
+
+      <mat-card-actions align="end">
+        <button mat-button (click)="cancelDelete()">Cancel</button>
+        <button mat-raised-button color="warn" (click)="deleteLocation()">
+          <mat-icon>delete</mat-icon>
+          Delete Location
+        </button>
+      </mat-card-actions>
+    </mat-card>
+  </div>
+</div>

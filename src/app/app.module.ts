@@ -14,6 +14,9 @@ import { ManagedToolsComponent } from './components/managed-tools/managed-tools.
 import { CheckOutComponent } from './components/check-out/check-out.component';
 import { CheckInComponent } from './components/check-in/check-in.component';
 import { CategoriesComponent } from './components/categories/categories.component';
+import { LocationsComponent } from './components/locations/locations.component';
+import { ReportsComponent } from './components/reports/reports.component';
+import { SettingsComponent } from './components/settings/settings.component';
 
 @NgModule({
   declarations: [
@@ -26,6 +29,9 @@ import { CategoriesComponent } from './components/categories/categories.componen
     CheckOutComponent,
     CheckInComponent,
     CategoriesComponent,
+    LocationsComponent,
+    ReportsComponent,
+    SettingsComponent,
   ],
   imports: [
     BrowserModule,

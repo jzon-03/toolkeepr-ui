@@ -1,0 +1,481 @@
+<div class="managed-tools-container">
+  <div class="page-header">
+    <h1>Manage Tools</h1>
+    <p class="page-description">Add, edit, and organize your tool inventory and tool types</p>
+  </div>
+
+  <mat-tab-group [(selectedIndex)]="selectedTab" class="management-tabs">
+    <!-- Tools Tab -->
+    <mat-tab label="Tools">
+      <div class="tab-content">
+        <!-- Tools Header -->
+        <div class="section-header">
+          <h2>Tool Inventory</h2>
+          <button mat-raised-button color="primary" (click)="addTool()" [disabled]="isAddingTool || isEditingTool">
+            <mat-icon>add</mat-icon>
+            Add Tool
+          </button>
+        </div>
+
+        <!-- Tool Form -->
+        <mat-card *ngIf="isAddingTool || isEditingTool" class="form-card">
+          <mat-card-header>
+            <mat-card-title>{{isAddingTool ? 'Add New Tool' : 'Edit Tool'}}</mat-card-title>
+          </mat-card-header>
+          <mat-card-content>
+            <form class="tool-form">
+              <div class="form-row">
+                <mat-form-field>
+                  <mat-label>Tool Name</mat-label>
+                  <input matInput [(ngModel)]="currentTool.name" name="name" required>
+                </mat-form-field>
+              </div>
+              <div class="form-row">
+                <mat-form-field>
+                  <mat-label>Tool Type</mat-label>
+                  <mat-select [(ngModel)]="currentTool.type" name="type" required (ngModelChange)="onToolTypeChange()">
+                    <mat-option *ngFor="let type of getAvailableToolTypes()" [value]="type.name">
+                      {{type.name}}
+                    </mat-option>
+                  </mat-select>
+                </mat-form-field>
+              </div>
+              
+              <!-- Dynamic Properties Section -->
+              <div *ngIf="getSelectedToolType()" class="properties-section">
+                <h3 class="properties-title">{{getSelectedToolType()?.name}} Properties</h3>
+                <div class="properties-grid">
+                  <div *ngFor="let property of getSelectedToolType()?.properties" class="property-field">
+                    <!-- Text Input -->
+                    <mat-form-field *ngIf="property.type === 'text'">
+                      <mat-label>{{property.label}}</mat-label>
+                      <input matInput 
+                             [(ngModel)]="currentTool.properties![property.name]" 
+                             [name]="'prop_' + property.name"
+                             [required]="property.required">
+                      <mat-hint *ngIf="property.unit">Unit: {{property.unit}}</mat-hint>
+                    </mat-form-field>
+                    
+                    <!-- Number Input -->
+                    <mat-form-field *ngIf="property.type === 'number'">
+                      <mat-label>{{property.label}}</mat-label>
+                      <input matInput 
+                             type="number"
+                             [(ngModel)]="currentTool.properties![property.name]" 
+                             [name]="'prop_' + property.name"
+                             [required]="property.required">
+                      <mat-hint *ngIf="property.unit">Unit: {{property.unit}}</mat-hint>
+                    </mat-form-field>
+                    
+                    <!-- Date Input -->
+                    <mat-form-field *ngIf="property.type === 'date'">
+                      <mat-label>{{property.label}}</mat-label>
+                      <input matInput 
+                             [matDatepicker]="picker"
+                             [(ngModel)]="currentTool.properties![property.name]" 
+                             [name]="'prop_' + property.name"
+                             [required]="property.required">
+                      <mat-datepicker-toggle matSuffix [for]="picker"></mat-datepicker-toggle>
+                      <mat-datepicker #picker></mat-datepicker>
+                    </mat-form-field>
+                    
+                    <!-- Select/Dropdown -->
+                    <mat-form-field *ngIf="property.type === 'select'">
+                      <mat-label>{{property.label}}</mat-label>
+                      <mat-select [(ngModel)]="currentTool.properties![property.name]" 
+                                  [name]="'prop_' + property.name"
+                                  [required]="property.required">
+                        <mat-option *ngFor="let option of property.options" [value]="option">
+                          {{option}}
+                        </mat-option>
+                      </mat-select>
+                    </mat-form-field>
+                    
+                    <!-- Boolean/Checkbox -->
+                    <div *ngIf="property.type === 'boolean'" class="checkbox-field">
+                      <mat-checkbox [(ngModel)]="currentTool.properties![property.name]" 
+                                    [name]="'prop_' + property.name">
+                        {{property.label}}
+                      </mat-checkbox>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div class="form-row">
+                <mat-form-field>
+                  <mat-label>Tool Type</mat-label>
+                  <mat-select [(ngModel)]="currentTool.type" name="type" required (ngModelChange)="onToolTypeChange()">
+                    <mat-option *ngFor="let type of getAvailableToolTypes()" [value]="type.name">
+                      {{type.name}}
+                    </mat-option>
+                  </mat-select>
+                </mat-form-field>
+              </div>
+              <div class="form-row">
+                <mat-form-field>
+                  <mat-label>Description</mat-label>
+                  <textarea matInput [(ngModel)]="currentTool.description" name="description" rows="3"></textarea>
+                </mat-form-field>
+                <mat-form-field>
+                  <mat-label>Location</mat-label>
+                  <input matInput [(ngModel)]="currentTool.location" name="location">
+                </mat-form-field>
+              </div>
+              <div class="form-row">
+                <mat-form-field>
+                  <mat-label>Status</mat-label>
+                  <mat-select [(ngModel)]="currentTool.status" name="status">
+                    <mat-option *ngFor="let status of statuses" [value]="status.value">
+                      {{status.label}}
+                    </mat-option>
+                  </mat-select>
+                </mat-form-field>
+                <mat-form-field>
+                  <mat-label>Serial Number</mat-label>
+                  <input matInput [(ngModel)]="currentTool.serialNumber" name="serialNumber">
+                </mat-form-field>
+              </div>
+              <div class="form-row">
+                <mat-form-field>
+                  <mat-label>Manufacturer</mat-label>
+                  <input matInput [(ngModel)]="currentTool.manufacturer" name="manufacturer">
+                </mat-form-field>
+                <mat-form-field>
+                  <mat-label>Model</mat-label>
+                  <input matInput [(ngModel)]="currentTool.model" name="model">
+                </mat-form-field>
+              </div>
+              <div class="form-row">
+                <mat-checkbox [(ngModel)]="currentTool.isStandard" name="isStandard">
+                  Mark as Standard Tool
+                </mat-checkbox>
+              </div>
+              <div class="form-row">
+                <mat-form-field>
+                  <mat-label>Notes</mat-label>
+                  <textarea matInput [(ngModel)]="currentTool.notes" name="notes" rows="2"></textarea>
+                </mat-form-field>
+              </div>
+            </form>
+          </mat-card-content>
+          <mat-card-actions>
+            <button mat-raised-button color="primary" (click)="saveTool()">
+              <mat-icon>save</mat-icon>
+              {{isAddingTool ? 'Add Tool' : 'Save Changes'}}
+            </button>
+            <button mat-button (click)="cancelToolForm()">
+              Cancel
+            </button>
+          </mat-card-actions>
+        </mat-card>
+
+        <!-- Tools Filters -->
+        <mat-card class="filters-card" *ngIf="!isAddingTool && !isEditingTool">
+          <mat-card-content>
+            <div class="filters-row">
+              <mat-form-field>
+                <mat-label>Search</mat-label>
+                <input matInput [(ngModel)]="searchTerm" (ngModelChange)="applyFilters()" placeholder="Search tools...">
+                <mat-icon matSuffix>search</mat-icon>
+              </mat-form-field>
+              <mat-form-field>
+                <mat-label>Status</mat-label>
+                <mat-select [(ngModel)]="statusFilter" (ngModelChange)="applyFilters()">
+                  <mat-option value="">All Statuses</mat-option>
+                  <mat-option *ngFor="let status of statuses" [value]="status.value">
+                    {{status.label}}
+                  </mat-option>
+                </mat-select>
+              </mat-form-field>
+              <mat-form-field>
+                <mat-label>Type</mat-label>
+                <mat-select [(ngModel)]="typeFilter" (ngModelChange)="applyFilters()">
+                  <mat-option value="">All Types</mat-option>
+                  <mat-option *ngFor="let type of toolTypes" [value]="type.name">
+                    {{type.name}}
+                  </mat-option>
+                </mat-select>
+              </mat-form-field>
+              <mat-form-field>
+                <mat-label>Standard</mat-label>
+                <mat-select [(ngModel)]="standardFilter" (ngModelChange)="applyFilters()">
+                  <mat-option value="">All Tools</mat-option>
+                  <mat-option value="standard">Standard Only</mat-option>
+                  <mat-option value="non-standard">Non-Standard Only</mat-option>
+                </mat-select>
+              </mat-form-field>
+              <button mat-icon-button (click)="clearFilters()" matTooltip="Clear Filters">
+                <mat-icon>clear</mat-icon>
+              </button>
+            </div>
+          </mat-card-content>
+        </mat-card>
+
+        <!-- Tools Table -->
+        <mat-card class="table-card" *ngIf="!isAddingTool && !isEditingTool">
+          <mat-card-content>
+            <table mat-table [dataSource]="toolsDataSource" matSort class="tools-table">
+              <ng-container matColumnDef="id">
+                <th mat-header-cell *matHeaderCellDef mat-sort-header>ID</th>
+                <td mat-cell *matCellDef="let tool">{{tool.id}}</td>
+              </ng-container>
+
+              <ng-container matColumnDef="name">
+                <th mat-header-cell *matHeaderCellDef mat-sort-header>Name</th>
+                <td mat-cell *matCellDef="let tool">
+                  <div class="tool-name">
+                    <strong>{{tool.name}}</strong>
+                    <small>{{tool.description}}</small>
+                  </div>
+                </td>
+              </ng-container>
+
+              <ng-container matColumnDef="type">
+                <th mat-header-cell *matHeaderCellDef mat-sort-header>Type</th>
+                <td mat-cell *matCellDef="let tool">{{tool.type}}</td>
+              </ng-container>
+
+              <ng-container matColumnDef="location">
+                <th mat-header-cell *matHeaderCellDef mat-sort-header>Location</th>
+                <td mat-cell *matCellDef="let tool">{{tool.location}}</td>
+              </ng-container>
+
+              <ng-container matColumnDef="status">
+                <th mat-header-cell *matHeaderCellDef mat-sort-header>Status</th>
+                <td mat-cell *matCellDef="let tool">
+                  <mat-chip [color]="getStatusColor(tool.status)" selected>
+                    {{tool.status | titlecase}}
+                  </mat-chip>
+                </td>
+              </ng-container>
+
+              <ng-container matColumnDef="isStandard">
+                <th mat-header-cell *matHeaderCellDef mat-sort-header>Standard</th>
+                <td mat-cell *matCellDef="let tool">
+                  <mat-icon *ngIf="tool.isStandard" color="primary">star</mat-icon>
+                  <mat-icon *ngIf="!tool.isStandard" class="inactive-icon">star_border</mat-icon>
+                </td>
+              </ng-container>
+
+              <ng-container matColumnDef="actions">
+                <th mat-header-cell *matHeaderCellDef>Actions</th>
+                <td mat-cell *matCellDef="let tool">
+                  <button mat-icon-button (click)="editTool(tool)" matTooltip="Edit Tool">
+                    <mat-icon>edit</mat-icon>
+                  </button>
+                  <button mat-icon-button (click)="toggleStandardTool(tool)" 
+                          [matTooltip]="tool.isStandard ? 'Remove from Standard' : 'Mark as Standard'">
+                    <mat-icon [color]="tool.isStandard ? 'primary' : ''">{{tool.isStandard ? 'star' : 'star_border'}}</mat-icon>
+                  </button>
+                  <button mat-icon-button color="warn" (click)="deleteTool(tool)" matTooltip="Delete Tool">
+                    <mat-icon>delete</mat-icon>
+                  </button>
+                </td>
+              </ng-container>
+
+              <tr mat-header-row *matHeaderRowDef="toolDisplayedColumns"></tr>
+              <tr mat-row *matRowDef="let row; columns: toolDisplayedColumns;"></tr>
+            </table>
+            <mat-paginator [pageSizeOptions]="[10, 25, 50, 100]" showFirstLastButtons></mat-paginator>
+          </mat-card-content>
+        </mat-card>
+      </div>
+    </mat-tab>
+
+    <!-- Tool Types Tab -->
+    <mat-tab label="Tool Types">
+      <div class="tab-content">
+        <!-- Tool Types Header -->
+        <div class="section-header">
+          <h2>Tool Types</h2>
+          <button mat-raised-button color="primary" (click)="addToolType()" [disabled]="isAddingToolType || isEditingToolType">
+            <mat-icon>add</mat-icon>
+            Add Tool Type
+          </button>
+        </div>
+
+        <!-- Tool Type Form -->
+        <mat-card *ngIf="isAddingToolType || isEditingToolType" class="form-card">
+          <mat-card-header>
+            <mat-card-title>{{isAddingToolType ? 'Add New Tool Type' : 'Edit Tool Type'}}</mat-card-title>
+          </mat-card-header>
+          <mat-card-content>
+            <form class="tool-type-form">
+              <div class="form-row">
+                <mat-form-field>
+                  <mat-label>Type Name</mat-label>
+                  <input matInput [(ngModel)]="currentToolType.name" name="name" required>
+                </mat-form-field>
+                <mat-form-field>
+                  <mat-label>Category</mat-label>
+                  <mat-select [(ngModel)]="currentToolType.category" name="category" required>
+                    <mat-option *ngFor="let category of categories" [value]="category">
+                      {{category}}
+                    </mat-option>
+                  </mat-select>
+                </mat-form-field>
+              </div>
+              <div class="form-row">
+                <mat-form-field>
+                  <mat-label>Description</mat-label>
+                  <textarea matInput [(ngModel)]="currentToolType.description" name="description" rows="3"></textarea>
+                </mat-form-field>
+              </div>
+              <div class="form-row">
+                <mat-checkbox [(ngModel)]="currentToolType.isActive" name="isActive">
+                  Active Tool Type
+                </mat-checkbox>
+              </div>
+            </form>
+          </mat-card-content>
+          <mat-card-actions>
+            <button mat-raised-button color="primary" (click)="saveToolType()">
+              <mat-icon>save</mat-icon>
+              {{isAddingToolType ? 'Add Tool Type' : 'Save Changes'}}
+            </button>
+            <button mat-button (click)="cancelToolTypeForm()">
+              Cancel
+            </button>
+          </mat-card-actions>
+        </mat-card>
+
+        <!-- Tool Types Table -->
+        <mat-card class="table-card" *ngIf="!isAddingToolType && !isEditingToolType">
+          <mat-card-content>
+            <table mat-table [dataSource]="toolTypesDataSource" class="tool-types-table">
+              <ng-container matColumnDef="name">
+                <th mat-header-cell *matHeaderCellDef>Name</th>
+                <td mat-cell *matCellDef="let type">
+                  <div class="type-name">
+                    <strong>{{type.name}}</strong>
+                    <mat-chip size="small" *ngIf="!type.isActive">Inactive</mat-chip>
+                  </div>
+                </td>
+              </ng-container>
+
+              <ng-container matColumnDef="category">
+                <th mat-header-cell *matHeaderCellDef>Category</th>
+                <td mat-cell *matCellDef="let type">{{type.category}}</td>
+              </ng-container>
+
+              <ng-container matColumnDef="description">
+                <th mat-header-cell *matHeaderCellDef>Description</th>
+                <td mat-cell *matCellDef="let type">{{type.description}}</td>
+              </ng-container>
+
+              <ng-container matColumnDef="isActive">
+                <th mat-header-cell *matHeaderCellDef>Status</th>
+                <td mat-cell *matCellDef="let type">
+                  <mat-chip [color]="type.isActive ? 'primary' : ''" selected>
+                    {{type.isActive ? 'Active' : 'Inactive'}}
+                  </mat-chip>
+                </td>
+              </ng-container>
+
+              <ng-container matColumnDef="actions">
+                <th mat-header-cell *matHeaderCellDef>Actions</th>
+                <td mat-cell *matCellDef="let type">
+                  <button mat-icon-button (click)="editToolType(type)" matTooltip="Edit Tool Type">
+                    <mat-icon>edit</mat-icon>
+                  </button>
+                  <button mat-icon-button (click)="manageProperties(type)" matTooltip="Manage Properties" color="primary">
+                    <mat-icon>settings</mat-icon>
+                  </button>
+                  <button mat-icon-button (click)="toggleToolTypeStatus(type)" 
+                          [matTooltip]="type.isActive ? 'Deactivate' : 'Activate'">
+                    <mat-icon [color]="type.isActive ? 'primary' : 'warn'">
+                      {{type.isActive ? 'toggle_on' : 'toggle_off'}}
+                    </mat-icon>
+                  </button>
+                  <button mat-icon-button color="warn" (click)="deleteToolType(type)" matTooltip="Delete Tool Type">
+                    <mat-icon>delete</mat-icon>
+                  </button>
+                </td>
+              </ng-container>
+
+              <tr mat-header-row *matHeaderRowDef="toolTypeDisplayedColumns"></tr>
+              <tr mat-row *matRowDef="let row; columns: toolTypeDisplayedColumns;"></tr>
+            </table>
+          </mat-card-content>
+        </mat-card>
+      </div>
+    </mat-tab>
+  </mat-tab-group>
+
+  <!-- Properties Management Modal -->
+  <div *ngIf="isManagingProperties" class="modal-backdrop" (click)="closePropertiesManagement()">
+    <mat-card class="properties-modal" (click)="$event.stopPropagation()">
+      <mat-card-header>
+        <mat-card-title>Manage Properties: {{currentToolTypeForProperties?.name}}</mat-card-title>
+        <button mat-icon-button (click)="closePropertiesManagement()">
+          <mat-icon>close</mat-icon>
+        </button>
+      </mat-card-header>
+      
+      <mat-card-content>
+        <!-- Add New Property Form -->
+        <div class="add-property-form">
+          <h3>Add New Property</h3>
+          <div class="property-form-grid">
+            <mat-form-field>
+              <mat-label>Property Name (code)</mat-label>
+              <input matInput [(ngModel)]="newProperty.name" placeholder="e.g., diameter">
+            </mat-form-field>
+            <mat-form-field>
+              <mat-label>Display Label</mat-label>
+              <input matInput [(ngModel)]="newProperty.label" placeholder="e.g., Diameter">
+            </mat-form-field>
+            <mat-form-field>
+              <mat-label>Property Type</mat-label>
+              <mat-select [(ngModel)]="newProperty.type">
+                <mat-option *ngFor="let type of propertyTypes" [value]="type.value">
+                  {{type.label}}
+                </mat-option>
+              </mat-select>
+            </mat-form-field>
+            <mat-form-field *ngIf="newProperty.type === 'number'">
+              <mat-label>Unit (optional)</mat-label>
+              <input matInput [(ngModel)]="newProperty.unit" placeholder="e.g., mm, inches">
+            </mat-form-field>
+            <mat-form-field *ngIf="newProperty.type === 'select'">
+              <mat-label>Options (comma separated)</mat-label>
+              <input matInput [(ngModel)]="optionsString" (ngModelChange)="updatePropertyOptions($event)" 
+                     placeholder="Option 1, Option 2, Option 3">
+            </mat-form-field>
+            <mat-checkbox [(ngModel)]="newProperty.required">
+              Required Field
+            </mat-checkbox>
+          </div>
+          <button mat-raised-button color="primary" (click)="addProperty()" 
+                  [disabled]="!newProperty.name || !newProperty.label">
+            <mat-icon>add</mat-icon>
+            Add Property
+          </button>
+        </div>
+
+        <mat-divider></mat-divider>
+
+        <!-- Existing Properties List -->
+        <div class="existing-properties">
+          <h3>Current Properties</h3>
+          <div *ngIf="currentToolTypeForProperties && currentToolTypeForProperties.properties.length === 0" class="empty-properties">
+            <p>No properties defined for this tool type.</p>
+          </div>
+          <div *ngFor="let property of currentToolTypeForProperties?.properties" class="property-item">
+            <div class="property-info">
+              <strong>{{property.label}}</strong> ({{property.name}})
+              <span class="property-type">{{property.type}}</span>
+              <span *ngIf="property.required" class="required-badge">Required</span>
+              <span *ngIf="property.unit" class="unit-badge">{{property.unit}}</span>
+            </div>
+            <div class="property-actions">
+              <button mat-icon-button color="warn" (click)="removeProperty(property)" matTooltip="Remove Property">
+                <mat-icon>delete</mat-icon>
+              </button>
+            </div>
+          </div>
+        </div>
+      </mat-card-content>
+    </mat-card>
+  </div>
+</div>

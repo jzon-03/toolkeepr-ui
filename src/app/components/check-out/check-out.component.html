@@ -1,0 +1,330 @@
+<div class="check-out-container">
+  <!-- Header -->
+  <div class="page-header">
+    <h1 class="page-title">
+      <mat-icon class="title-icon">output</mat-icon>
+      Tool Check Out
+    </h1>
+    <p class="page-subtitle">Manage tool checkouts and track borrowing status</p>
+  </div>
+
+  <!-- Stats Cards -->
+  <div class="stats-grid">
+    <mat-card class="stat-card available">
+      <mat-card-content>
+        <div class="stat-content">
+          <div class="stat-info">
+            <h3>{{ availableToolsDataSource.data.length }}</h3>
+            <p>Available Tools</p>
+          </div>
+          <mat-icon class="stat-icon">check_circle</mat-icon>
+        </div>
+      </mat-card-content>
+    </mat-card>
+
+    <mat-card class="stat-card checked-out">
+      <mat-card-content>
+        <div class="stat-content">
+          <div class="stat-info">
+            <h3>{{ checkedOutCount }}</h3>
+            <p>Checked Out</p>
+          </div>
+          <mat-icon class="stat-icon">schedule</mat-icon>
+        </div>
+      </mat-card-content>
+    </mat-card>
+
+    <mat-card class="stat-card overdue">
+      <mat-card-content>
+        <div class="stat-content">
+          <div class="stat-info">
+            <h3>{{ overdueCount }}</h3>
+            <p>Overdue</p>
+          </div>
+          <mat-icon class="stat-icon">warning</mat-icon>
+        </div>
+      </mat-card-content>
+    </mat-card>
+
+    <mat-card class="stat-card action-card">
+      <mat-card-content>
+        <div class="stat-content">
+          <div class="stat-info">
+            <h3>Quick</h3>
+            <p>Actions</p>
+          </div>
+          <button mat-fab color="primary" class="quick-action-btn" [disabled]="availableToolsDataSource.data.length === 0">
+            <mat-icon>add</mat-icon>
+          </button>
+        </div>
+      </mat-card-content>
+    </mat-card>
+  </div>
+
+  <!-- Check Out Form (Overlay) -->
+  <div class="checkout-form-overlay" *ngIf="showCheckOutForm" [@fadeInOut]>
+    <mat-card class="checkout-form-card">
+      <mat-card-header>
+        <mat-card-title>
+          <mat-icon>output</mat-icon>
+          Check Out Tool: {{ selectedTool?.name }}
+        </mat-card-title>
+        <mat-card-subtitle>Fill in the details to check out this tool</mat-card-subtitle>
+        <button mat-icon-button class="close-btn" (click)="cancelCheckOut()">
+          <mat-icon>close</mat-icon>
+        </button>
+      </mat-card-header>
+      
+      <mat-card-content>
+        <form [formGroup]="checkOutForm" (ngSubmit)="submitCheckOut()">
+          <div class="form-grid">
+            <mat-form-field appearance="outline">
+              <mat-label>Employee Name</mat-label>
+              <input matInput formControlName="employeeName" placeholder="Enter full name">
+              <mat-icon matPrefix>person</mat-icon>
+              <mat-error *ngIf="checkOutForm.get('employeeName')?.hasError('required')">
+                Employee name is required
+              </mat-error>
+              <mat-error *ngIf="checkOutForm.get('employeeName')?.hasError('minlength')">
+                Name must be at least 2 characters
+              </mat-error>
+            </mat-form-field>
+
+            <mat-form-field appearance="outline">
+              <mat-label>Employee ID</mat-label>
+              <input matInput formControlName="employeeId" placeholder="EMP001" maxlength="6">
+              <mat-icon matPrefix>badge</mat-icon>
+              <mat-hint>Format: ABC123</mat-hint>
+              <mat-error *ngIf="checkOutForm.get('employeeId')?.hasError('required')">
+                Employee ID is required
+              </mat-error>
+              <mat-error *ngIf="checkOutForm.get('employeeId')?.hasError('pattern')">
+                Format should be ABC123 (3 letters + 3 numbers)
+              </mat-error>
+            </mat-form-field>
+
+            <mat-form-field appearance="outline">
+              <mat-label>Expected Return Date</mat-label>
+              <input matInput [matDatepicker]="picker" formControlName="expectedReturnDate" [min]="today">
+              <mat-datepicker-toggle matIconSuffix [for]="picker"></mat-datepicker-toggle>
+              <mat-datepicker #picker></mat-datepicker>
+              <mat-error *ngIf="checkOutForm.get('expectedReturnDate')?.hasError('required')">
+                Return date is required
+              </mat-error>
+            </mat-form-field>
+
+            <mat-form-field appearance="outline" class="notes-field">
+              <mat-label>Notes (Optional)</mat-label>
+              <textarea matInput formControlName="notes" rows="3" placeholder="Project details, special instructions..."></textarea>
+              <mat-icon matPrefix>notes</mat-icon>
+            </mat-form-field>
+          </div>
+
+          <div class="tool-info-card">
+            <mat-icon>info</mat-icon>
+            <div class="tool-details">
+              <h4>{{ selectedTool?.name }}</h4>
+              <p><strong>Category:</strong> {{ selectedTool?.category }}</p>
+              <p><strong>Location:</strong> {{ selectedTool?.location }}</p>
+              <p><strong>Condition:</strong> {{ selectedTool?.condition }}</p>
+            </div>
+          </div>
+
+          <mat-card-actions align="end">
+            <button type="button" mat-button (click)="cancelCheckOut()">Cancel</button>
+            <button type="submit" mat-raised-button color="primary" [disabled]="checkOutForm.invalid || isLoading">
+              <mat-icon *ngIf="isLoading" class="spinning">refresh</mat-icon>
+              <mat-icon *ngIf="!isLoading">check</mat-icon>
+              {{ isLoading ? 'Processing...' : 'Check Out Tool' }}
+            </button>
+          </mat-card-actions>
+        </form>
+      </mat-card-content>
+    </mat-card>
+  </div>
+
+  <!-- Main Content Grid -->
+  <div class="content-grid">
+    <!-- Available Tools Section -->
+    <mat-card class="tools-section">
+      <mat-card-header>
+        <mat-card-title>
+          <mat-icon>inventory</mat-icon>
+          Available Tools
+        </mat-card-title>
+        <mat-card-subtitle>Select a tool to check out</mat-card-subtitle>
+      </mat-card-header>
+
+      <mat-card-content>
+        <!-- Search Filter -->
+        <mat-form-field appearance="outline" class="search-field">
+          <mat-label>Search Tools</mat-label>
+          <input matInput (keyup)="applyFilter($event, availableToolsDataSource)" placeholder="Search by name, category, location...">
+          <mat-icon matPrefix>search</mat-icon>
+        </mat-form-field>
+
+        <!-- Available Tools Table -->
+        <div class="table-container">
+          <table mat-table [dataSource]="availableToolsDataSource" matSort class="full-width-table">
+            <ng-container matColumnDef="name">
+              <th mat-header-cell *matHeaderCellDef mat-sort-header>Tool Name</th>
+              <td mat-cell *matCellDef="let tool">
+                <div class="tool-name-cell">
+                  <mat-icon class="tool-icon">build</mat-icon>
+                  <span>{{ tool.name }}</span>
+                </div>
+              </td>
+            </ng-container>
+
+            <ng-container matColumnDef="category">
+              <th mat-header-cell *matHeaderCellDef mat-sort-header>Category</th>
+              <td mat-cell *matCellDef="let tool">
+                <mat-chip-set>
+                  <mat-chip>{{ tool.category }}</mat-chip>
+                </mat-chip-set>
+              </td>
+            </ng-container>
+
+            <ng-container matColumnDef="location">
+              <th mat-header-cell *matHeaderCellDef mat-sort-header>Location</th>
+              <td mat-cell *matCellDef="let tool">
+                <div class="location-cell">
+                  <mat-icon class="location-icon">place</mat-icon>
+                  {{ tool.location }}
+                </div>
+              </td>
+            </ng-container>
+
+            <ng-container matColumnDef="condition">
+              <th mat-header-cell *matHeaderCellDef mat-sort-header>Condition</th>
+              <td mat-cell *matCellDef="let tool">
+                <mat-chip-set>
+                  <mat-chip [color]="tool.condition === 'Excellent' ? 'primary' : tool.condition === 'Good' ? 'accent' : 'warn'">
+                    {{ tool.condition }}
+                  </mat-chip>
+                </mat-chip-set>
+              </td>
+            </ng-container>
+
+            <ng-container matColumnDef="actions">
+              <th mat-header-cell *matHeaderCellDef>Actions</th>
+              <td mat-cell *matCellDef="let tool">
+                <button mat-raised-button color="primary" (click)="selectToolForCheckOut(tool)" class="checkout-btn">
+                  <mat-icon>output</mat-icon>
+                  Check Out
+                </button>
+              </td>
+            </ng-container>
+
+            <tr mat-header-row *matHeaderRowDef="availableToolsColumns"></tr>
+            <tr mat-row *matRowDef="let row; columns: availableToolsColumns;"></tr>
+
+            <tr class="mat-row" *matNoDataRow>
+              <td class="mat-cell" colspan="5">
+                <div class="no-data">
+                  <mat-icon>inventory_2</mat-icon>
+                  <p>No available tools found</p>
+                </div>
+              </td>
+            </tr>
+          </table>
+        </div>
+
+        <mat-paginator [pageSizeOptions]="[5, 10, 20]" showFirstLastButtons></mat-paginator>
+      </mat-card-content>
+    </mat-card>
+
+    <!-- Current Check Outs Section -->
+    <mat-card class="checkouts-section">
+      <mat-card-header>
+        <mat-card-title>
+          <mat-icon>assignment</mat-icon>
+          Current Check Outs
+        </mat-card-title>
+        <mat-card-subtitle>Track checked out tools and returns</mat-card-subtitle>
+      </mat-card-header>
+
+      <mat-card-content>
+        <!-- Search Filter -->
+        <mat-form-field appearance="outline" class="search-field">
+          <mat-label>Search Check Outs</mat-label>
+          <input matInput (keyup)="applyFilter($event, checkOutDataSource)" placeholder="Search by tool name, employee...">
+          <mat-icon matPrefix>search</mat-icon>
+        </mat-form-field>
+
+        <!-- Check Outs Table -->
+        <div class="table-container">
+          <table mat-table [dataSource]="checkOutDataSource" matSort class="full-width-table">
+            <ng-container matColumnDef="toolName">
+              <th mat-header-cell *matHeaderCellDef mat-sort-header>Tool</th>
+              <td mat-cell *matCellDef="let record">
+                <div class="tool-name-cell">
+                  <mat-icon class="tool-icon">build</mat-icon>
+                  <span>{{ record.toolName }}</span>
+                </div>
+              </td>
+            </ng-container>
+
+            <ng-container matColumnDef="employeeName">
+              <th mat-header-cell *matHeaderCellDef mat-sort-header>Employee</th>
+              <td mat-cell *matCellDef="let record">
+                <div class="employee-cell">
+                  <mat-icon class="employee-icon">person</mat-icon>
+                  <div>
+                    <div class="employee-name">{{ record.employeeName }}</div>
+                    <div class="employee-id">{{ record.employeeId }}</div>
+                  </div>
+                </div>
+              </td>
+            </ng-container>
+
+            <ng-container matColumnDef="checkOutDate">
+              <th mat-header-cell *matHeaderCellDef mat-sort-header>Check Out Date</th>
+              <td mat-cell *matCellDef="let record">{{ record.checkOutDate | date:'short' }}</td>
+            </ng-container>
+
+            <ng-container matColumnDef="expectedReturnDate">
+              <th mat-header-cell *matHeaderCellDef mat-sort-header>Expected Return</th>
+              <td mat-cell *matCellDef="let record">
+                <span [class.overdue-date]="isOverdue(record.expectedReturnDate)">
+                  {{ record.expectedReturnDate | date:'short' }}
+                </span>
+              </td>
+            </ng-container>
+
+            <ng-container matColumnDef="status">
+              <th mat-header-cell *matHeaderCellDef mat-sort-header>Status</th>
+              <td mat-cell *matCellDef="let record">
+                <mat-chip-set>
+                  <mat-chip [color]="getStatusColor(record.status)">{{ record.status | titlecase }}</mat-chip>
+                </mat-chip-set>
+              </td>
+            </ng-container>
+
+            <ng-container matColumnDef="actions">
+              <th mat-header-cell *matHeaderCellDef>Actions</th>
+              <td mat-cell *matCellDef="let record">
+                <button mat-raised-button color="accent" (click)="returnTool(record)" class="return-btn">
+                  <mat-icon>input</mat-icon>
+                  Return
+                </button>
+              </td>
+            </ng-container>
+
+            <tr mat-header-row *matHeaderRowDef="checkOutColumns"></tr>
+            <tr mat-row *matRowDef="let row; columns: checkOutColumns;"></tr>
+
+            <tr class="mat-row" *matNoDataRow>
+              <td class="mat-cell" colspan="6">
+                <div class="no-data">
+                  <mat-icon>assignment_turned_in</mat-icon>
+                  <p>No current check outs</p>
+                </div>
+              </td>
+            </tr>
+          </table>
+        </div>
+      </mat-card-content>
+    </mat-card>
+  </div>
+</div>

@@ -5,6 +5,8 @@ import { ToolsComponent } from './components/tools/tools.component';
 import { StandardToolsComponent } from './components/standard-tools/standard-tools.component';
 import { DashboardComponent } from './components/dashboard/dashboard.component';
 import { ManagedToolsComponent } from './components/managed-tools/managed-tools.component';
+import { CheckOutComponent } from './components/check-out/check-out.component';
+import { CheckInComponent } from './components/check-in/check-in.component';
 
 const routes: Routes = [
   {
@@ -31,6 +33,14 @@ const routes: Routes = [
       {
         path: 'manage-tools',
         component: ManagedToolsComponent
+      },
+      {
+        path: 'check-out',
+        component: CheckOutComponent
+      },
+      {
+        path: 'check-in',
+        component: CheckInComponent
       }
       // Other routes commented out until components are created
       // {

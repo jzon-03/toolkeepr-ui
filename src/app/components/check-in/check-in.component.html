@@ -1,0 +1,498 @@
+<div class="check-in-container">
+  <!-- Header Section -->
+  <div class="page-header">
+    <div class="header-content">
+      <div class="title-section">
+        <h1 class="page-title">
+          <mat-icon class="title-icon">input</mat-icon>
+          Tool Check In
+        </h1>
+        <p class="page-subtitle">Process tool returns and track inventory status</p>
+      </div>
+      <div class="header-actions">
+        <button mat-raised-button 
+                color="primary" 
+                (click)="toggleScanner()" 
+                [class.scanner-active]="scannerMode"
+                class="scanner-btn">
+          <mat-icon>qr_code_scanner</mat-icon>
+          {{ scannerMode ? 'Close Scanner' : 'Scan Tool' }}
+        </button>
+        <button mat-raised-button 
+                color="accent" 
+                (click)="startBulkReturn()" 
+                [disabled]="selectedCount === 0"
+                class="bulk-return-btn">
+          <mat-icon>inventory</mat-icon>
+          Bulk Return ({{ selectedCount }})
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Stats Dashboard -->
+  <div class="stats-grid">
+    <mat-card class="stat-card total-out">
+      <mat-card-content>
+        <div class="stat-content">
+          <div class="stat-info">
+            <h3>{{ totalCheckedOut }}</h3>
+            <p>Tools Checked Out</p>
+          </div>
+          <mat-icon class="stat-icon">assignment</mat-icon>
+        </div>
+      </mat-card-content>
+    </mat-card>
+
+    <mat-card class="stat-card overdue">
+      <mat-card-content>
+        <div class="stat-content">
+          <div class="stat-info">
+            <h3>{{ overdueCount }}</h3>
+            <p>Overdue Returns</p>
+          </div>
+          <mat-icon class="stat-icon">schedule_send</mat-icon>
+        </div>
+      </mat-card-content>
+    </mat-card>
+
+    <mat-card class="stat-card today-returns">
+      <mat-card-content>
+        <div class="stat-content">
+          <div class="stat-info">
+            <h3>{{ todayReturns }}</h3>
+            <p>Returns Today</p>
+          </div>
+          <mat-icon class="stat-icon">today</mat-icon>
+        </div>
+      </mat-card-content>
+    </mat-card>
+
+    <mat-card class="stat-card selected">
+      <mat-card-content>
+        <div class="stat-content">
+          <div class="stat-info">
+            <h3>{{ selectedCount }}</h3>
+            <p>Selected for Return</p>
+          </div>
+          <mat-icon class="stat-icon">check_circle</mat-icon>
+        </div>
+      </mat-card-content>
+    </mat-card>
+  </div>
+
+  <!-- Scanner Modal -->
+  <div class="scanner-overlay" *ngIf="scannerMode" [@fadeInOut]>
+    <mat-card class="scanner-card">
+      <mat-card-header>
+        <mat-card-title>
+          <mat-icon>qr_code_scanner</mat-icon>
+          Scan Tool Barcode
+        </mat-card-title>
+        <button mat-icon-button class="close-btn" (click)="toggleScanner()">
+          <mat-icon>close</mat-icon>
+        </button>
+      </mat-card-header>
+      <mat-card-content>
+        <div class="scanner-content">
+          <div class="scanner-animation">
+            <div class="scanner-line"></div>
+            <mat-icon class="scanner-icon">qr_code_2</mat-icon>
+          </div>
+          <mat-form-field appearance="outline" class="scanner-input">
+            <mat-label>Tool ID</mat-label>
+            <input matInput 
+                   [(ngModel)]="scannedToolId" 
+                   (keyup.enter)="processScannedTool()"
+                   placeholder="Enter or scan tool ID"
+                   autofocus>
+            <mat-icon matPrefix>tag</mat-icon>
+          </mat-form-field>
+          <button mat-raised-button 
+                  color="primary" 
+                  (click)="processScannedTool()" 
+                  [disabled]="!scannedToolId"
+                  class="process-scan-btn">
+            <mat-icon>search</mat-icon>
+            Find Tool
+          </button>
+        </div>
+      </mat-card-content>
+    </mat-card>
+  </div>
+
+  <!-- Main Content -->
+  <div class="content-grid">
+    <!-- Checked Out Tools Section -->
+    <mat-card class="tools-section">
+      <mat-card-header class="section-header">
+        <mat-card-title>
+          <mat-icon>assignment_late</mat-icon>
+          Tools Awaiting Return
+        </mat-card-title>
+        <mat-card-subtitle>Select tools to process returns</mat-card-subtitle>
+      </mat-card-header>
+
+      <mat-card-content>
+        <!-- Controls -->
+        <div class="section-controls">
+          <div class="filter-chips">
+            <mat-chip-set>
+              <mat-chip-option (click)="setFilterStatus('all')" [selected]="filterStatus === 'all'">
+                All ({{ totalCheckedOut }})
+              </mat-chip-option>
+              <mat-chip-option (click)="setFilterStatus('checked-out')" [selected]="filterStatus === 'checked-out'">
+                Active
+              </mat-chip-option>
+              <mat-chip-option (click)="setFilterStatus('overdue')" [selected]="filterStatus === 'overdue'">
+                Overdue ({{ overdueCount }})
+              </mat-chip-option>
+            </mat-chip-set>
+          </div>
+
+          <mat-form-field appearance="outline" class="search-field">
+            <mat-label>Search Tools</mat-label>
+            <input matInput (keyup)="applyFilter($event)" placeholder="Search by tool name, employee...">
+            <mat-icon matPrefix>search</mat-icon>
+          </mat-form-field>
+        </div>
+
+        <!-- Tools Table -->
+        <div class="table-container">
+          <table mat-table [dataSource]="checkedOutDataSource" matSort class="full-width-table">
+            <!-- Selection Column -->
+            <ng-container matColumnDef="select">
+              <th mat-header-cell *matHeaderCellDef>
+                <mat-checkbox (change)="selectAllTools()" 
+                              [indeterminate]="selectedCount > 0 && selectedCount < totalCheckedOut"
+                              [checked]="selectedCount === totalCheckedOut && totalCheckedOut > 0">
+                </mat-checkbox>
+              </th>
+              <td mat-cell *matCellDef="let tool">
+                <mat-checkbox (click)="$event.stopPropagation()"
+                              (change)="toggleToolSelection(tool)"
+                              [checked]="isToolSelected(tool)">
+                </mat-checkbox>
+              </td>
+            </ng-container>
+
+            <!-- Tool Name Column -->
+            <ng-container matColumnDef="toolName">
+              <th mat-header-cell *matHeaderCellDef mat-sort-header>Tool</th>
+              <td mat-cell *matCellDef="let tool">
+                <div class="tool-cell">
+                  <div class="tool-info">
+                    <div class="tool-name">{{ tool.toolName }}</div>
+                    <div class="tool-category">{{ tool.category }}</div>
+                    <div class="tool-id">ID: {{ tool.toolId }}</div>
+                  </div>
+                  <mat-icon class="tool-icon" [ngClass]="{'overdue-icon': tool.status === 'overdue'}">
+                    {{ tool.category === 'Power Tools' ? 'power' : 'build' }}
+                  </mat-icon>
+                </div>
+              </td>
+            </ng-container>
+
+            <!-- Employee Column -->
+            <ng-container matColumnDef="employee">
+              <th mat-header-cell *matHeaderCellDef mat-sort-header>Employee</th>
+              <td mat-cell *matCellDef="let tool">
+                <div class="employee-cell">
+                  <mat-icon class="employee-icon">person</mat-icon>
+                  <div class="employee-info">
+                    <div class="employee-name">{{ tool.employeeName }}</div>
+                    <div class="employee-id">{{ tool.employeeId }}</div>
+                  </div>
+                </div>
+              </td>
+            </ng-container>
+
+            <!-- Check Out Date Column -->
+            <ng-container matColumnDef="checkOutDate">
+              <th mat-header-cell *matHeaderCellDef mat-sort-header>Checked Out</th>
+              <td mat-cell *matCellDef="let tool">
+                <div class="date-cell">
+                  <div>{{ tool.checkOutDate | date:'MMM dd, yyyy' }}</div>
+                  <div class="time-info">{{ tool.checkOutDate | date:'shortTime' }}</div>
+                </div>
+              </td>
+            </ng-container>
+
+            <!-- Expected Return Date Column -->
+            <ng-container matColumnDef="expectedReturnDate">
+              <th mat-header-cell *matHeaderCellDef mat-sort-header>Expected Return</th>
+              <td mat-cell *matCellDef="let tool">
+                <div class="date-cell" [ngClass]="{'overdue-date': isOverdue(tool.expectedReturnDate)}">
+                  <div>{{ tool.expectedReturnDate | date:'MMM dd, yyyy' }}</div>
+                  <div class="time-info" *ngIf="isOverdue(tool.expectedReturnDate)">
+                    {{ getDaysOverdue(tool.expectedReturnDate) }} days overdue
+                  </div>
+                </div>
+              </td>
+            </ng-container>
+
+            <!-- Status Column -->
+            <ng-container matColumnDef="status">
+              <th mat-header-cell *matHeaderCellDef mat-sort-header>Status</th>
+              <td mat-cell *matCellDef="let tool">
+                <mat-chip-set>
+                  <mat-chip [color]="getStatusColor(tool.status)">
+                    {{ tool.status | titlecase }}
+                  </mat-chip>
+                </mat-chip-set>
+              </td>
+            </ng-container>
+
+            <!-- Actions Column -->
+            <ng-container matColumnDef="actions">
+              <th mat-header-cell *matHeaderCellDef>Actions</th>
+              <td mat-cell *matCellDef="let tool">
+                <button mat-raised-button 
+                        color="primary" 
+                        (click)="startSingleReturn(tool)"
+                        class="return-btn">
+                  <mat-icon>input</mat-icon>
+                  Return
+                </button>
+              </td>
+            </ng-container>
+
+            <tr mat-header-row *matHeaderRowDef="checkedOutColumns"></tr>
+            <tr mat-row *matRowDef="let row; columns: checkedOutColumns;" 
+                [class.selected-row]="isToolSelected(row)"
+                (click)="toggleToolSelection(row)"></tr>
+
+            <tr class="mat-row" *matNoDataRow>
+              <td class="mat-cell" colspan="7">
+                <div class="no-data">
+                  <mat-icon>assignment_turned_in</mat-icon>
+                  <p>No tools currently checked out</p>
+                </div>
+              </td>
+            </tr>
+          </table>
+        </div>
+
+        <mat-paginator [pageSizeOptions]="[5, 10, 20, 50]" showFirstLastButtons></mat-paginator>
+      </mat-card-content>
+    </mat-card>
+
+    <!-- Recent Returns Section -->
+    <mat-card class="recent-section">
+      <mat-card-header class="section-header recent-header">
+        <mat-card-title>
+          <mat-icon>history</mat-icon>
+          Recent Returns
+        </mat-card-title>
+        <mat-card-subtitle>Today's processed returns</mat-card-subtitle>
+      </mat-card-header>
+
+      <mat-card-content>
+        <div class="table-container">
+          <table mat-table [dataSource]="recentReturnsDataSource" class="full-width-table recent-table">
+            <ng-container matColumnDef="toolName">
+              <th mat-header-cell *matHeaderCellDef>Tool</th>
+              <td mat-cell *matCellDef="let record">
+                <div class="tool-name-simple">{{ record.toolName }}</div>
+              </td>
+            </ng-container>
+
+            <ng-container matColumnDef="employee">
+              <th mat-header-cell *matHeaderCellDef>Employee</th>
+              <td mat-cell *matCellDef="let record">
+                <div class="employee-simple">{{ record.employeeName }}</div>
+              </td>
+            </ng-container>
+
+            <ng-container matColumnDef="returnDate">
+              <th mat-header-cell *matHeaderCellDef>Return Time</th>
+              <td mat-cell *matCellDef="let record">{{ record.returnDate | date:'short' }}</td>
+            </ng-container>
+
+            <ng-container matColumnDef="condition">
+              <th mat-header-cell *matHeaderCellDef>Condition</th>
+              <td mat-cell *matCellDef="let record">
+                <mat-chip-set>
+                  <mat-chip [color]="record.returnCondition === 'good' ? 'primary' : 'warn'">
+                    {{ record.returnCondition | titlecase }}
+                  </mat-chip>
+                </mat-chip-set>
+              </td>
+            </ng-container>
+
+            <ng-container matColumnDef="maintenanceRequired">
+              <th mat-header-cell *matHeaderCellDef>Maintenance</th>
+              <td mat-cell *matCellDef="let record">
+                <mat-icon [color]="record.maintenanceRequired ? 'warn' : 'primary'">
+                  {{ record.maintenanceRequired ? 'build' : 'check_circle' }}
+                </mat-icon>
+              </td>
+            </ng-container>
+
+            <tr mat-header-row *matHeaderRowDef="recentReturnsColumns"></tr>
+            <tr mat-row *matRowDef="let row; columns: recentReturnsColumns;"></tr>
+
+            <tr class="mat-row" *matNoDataRow>
+              <td class="mat-cell" colspan="5">
+                <div class="no-data">
+                  <mat-icon>receipt_long</mat-icon>
+                  <p>No returns processed today</p>
+                </div>
+              </td>
+            </tr>
+          </table>
+        </div>
+      </mat-card-content>
+    </mat-card>
+  </div>
+
+  <!-- Single Return Modal -->
+  <div class="return-modal-overlay" *ngIf="showReturnModal" [@fadeInOut]>
+    <mat-card class="return-modal">
+      <mat-card-header>
+        <mat-card-title>
+          <mat-icon>input</mat-icon>
+          Return Tool: {{ currentTool?.toolName }}
+        </mat-card-title>
+        <button mat-icon-button class="close-btn" (click)="closeReturnModal()">
+          <mat-icon>close</mat-icon>
+        </button>
+      </mat-card-header>
+
+      <mat-card-content>
+        <form [formGroup]="returnForm" (ngSubmit)="processSingleReturn()">
+          <div class="form-grid">
+            <mat-form-field appearance="outline">
+              <mat-label>Tool Condition</mat-label>
+              <mat-select formControlName="returnCondition">
+                <mat-option value="excellent">Excellent</mat-option>
+                <mat-option value="good">Good</mat-option>
+                <mat-option value="fair">Fair</mat-option>
+                <mat-option value="poor">Poor</mat-option>
+                <mat-option value="damaged">Damaged</mat-option>
+              </mat-select>
+              <mat-icon matPrefix>assessment</mat-icon>
+            </mat-form-field>
+
+            <mat-form-field appearance="outline">
+              <mat-label>Returned By</mat-label>
+              <input matInput formControlName="returnedBy" placeholder="Staff name or desk">
+              <mat-icon matPrefix>person</mat-icon>
+            </mat-form-field>
+
+            <mat-form-field appearance="outline">
+              <mat-label>Inspected By (Optional)</mat-label>
+              <input matInput formControlName="inspectedBy" placeholder="Inspector name">
+              <mat-icon matPrefix>verified</mat-icon>
+            </mat-form-field>
+
+            <div class="checkbox-field">
+              <mat-checkbox formControlName="maintenanceRequired">
+                Requires Maintenance
+              </mat-checkbox>
+            </div>
+
+            <mat-form-field appearance="outline" class="textarea-field">
+              <mat-label>Damage Notes (if applicable)</mat-label>
+              <textarea matInput formControlName="damageNotes" rows="3" placeholder="Describe any damage or issues..."></textarea>
+              <mat-icon matPrefix>note</mat-icon>
+            </mat-form-field>
+
+            <mat-form-field appearance="outline" class="textarea-field">
+              <mat-label>Additional Notes (Optional)</mat-label>
+              <textarea matInput formControlName="additionalNotes" rows="2" placeholder="Any additional observations..."></textarea>
+              <mat-icon matPrefix>notes</mat-icon>
+            </mat-form-field>
+          </div>
+
+          <div class="tool-summary">
+            <h4>Return Summary</h4>
+            <div class="summary-grid">
+              <div><strong>Employee:</strong> {{ currentTool?.employeeName }}</div>
+              <div><strong>Checked Out:</strong> {{ currentTool?.checkOutDate | date:'short' }}</div>
+              <div><strong>Expected Return:</strong> {{ currentTool?.expectedReturnDate | date:'short' }}</div>
+              <div *ngIf="currentTool && isOverdue(currentTool.expectedReturnDate)" class="overdue-warning">
+                <mat-icon>warning</mat-icon>
+                <strong>{{ getDaysOverdue(currentTool.expectedReturnDate) }} days overdue</strong>
+              </div>
+            </div>
+          </div>
+
+          <mat-card-actions align="end">
+            <button type="button" mat-button (click)="closeReturnModal()">Cancel</button>
+            <button type="submit" 
+                    mat-raised-button 
+                    color="primary" 
+                    [disabled]="returnForm.invalid || isProcessing">
+              <mat-icon *ngIf="isProcessing" class="spinning">refresh</mat-icon>
+              <mat-icon *ngIf="!isProcessing">check</mat-icon>
+              {{ isProcessing ? 'Processing...' : 'Process Return' }}
+            </button>
+          </mat-card-actions>
+        </form>
+      </mat-card-content>
+    </mat-card>
+  </div>
+
+  <!-- Bulk Return Modal -->
+  <div class="return-modal-overlay" *ngIf="showBulkReturnModal" [@fadeInOut]>
+    <mat-card class="return-modal bulk-modal">
+      <mat-card-header>
+        <mat-card-title>
+          <mat-icon>inventory</mat-icon>
+          Bulk Return ({{ selectedCount }} tools)
+        </mat-card-title>
+        <button mat-icon-button class="close-btn" (click)="closeBulkReturnModal()">
+          <mat-icon>close</mat-icon>
+        </button>
+      </mat-card-header>
+
+      <mat-card-content>
+        <div class="selected-tools-preview">
+          <h4>Selected Tools:</h4>
+          <div class="tools-chips">
+            <mat-chip-set>
+              <mat-chip *ngFor="let tool of selectedTools">
+                {{ tool.toolName }}
+              </mat-chip>
+            </mat-chip-set>
+          </div>
+        </div>
+
+        <form [formGroup]="bulkReturnForm" (ngSubmit)="processBulkReturn()">
+          <div class="bulk-form-grid">
+            <mat-form-field appearance="outline">
+              <mat-label>Returned By</mat-label>
+              <input matInput formControlName="returnedBy" placeholder="Staff name or desk">
+              <mat-icon matPrefix>person</mat-icon>
+            </mat-form-field>
+
+            <mat-form-field appearance="outline">
+              <mat-label>Inspected By (Optional)</mat-label>
+              <input matInput formControlName="inspectedBy" placeholder="Inspector name">
+              <mat-icon matPrefix>verified</mat-icon>
+            </mat-form-field>
+
+            <mat-form-field appearance="outline" class="textarea-field">
+              <mat-label>Notes (Optional)</mat-label>
+              <textarea matInput formControlName="notes" rows="3" placeholder="General notes for bulk return..."></textarea>
+              <mat-icon matPrefix>notes</mat-icon>
+            </mat-form-field>
+          </div>
+
+          <mat-card-actions align="end">
+            <button type="button" mat-button (click)="closeBulkReturnModal()">Cancel</button>
+            <button type="submit" 
+                    mat-raised-button 
+                    color="primary" 
+                    [disabled]="bulkReturnForm.invalid || isProcessing">
+              <mat-icon *ngIf="isProcessing" class="spinning">refresh</mat-icon>
+              <mat-icon *ngIf="!isProcessing">check</mat-icon>
+              {{ isProcessing ? 'Processing...' : 'Process Bulk Return' }}
+            </button>
+          </mat-card-actions>
+        </form>
+      </mat-card-content>
+    </mat-card>
+  </div>
+</div>

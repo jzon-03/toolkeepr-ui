@@ -1,6 +1,6 @@
 import { NgModule } from '@angular/core';
 import { BrowserModule } from '@angular/platform-browser';
-import { FormsModule } from '@angular/forms';
+import { FormsModule, ReactiveFormsModule } from '@angular/forms';
 
 import { AppRoutingModule } from './app-routing.module';
 import { AppComponent } from './app.component';
@@ -11,6 +11,8 @@ import { ToolsComponent } from './components/tools/tools.component';
 import { StandardToolsComponent } from './components/standard-tools/standard-tools.component';
 import { DashboardComponent } from './components/dashboard/dashboard.component';
 import { ManagedToolsComponent } from './components/managed-tools/managed-tools.component';
+import { CheckOutComponent } from './components/check-out/check-out.component';
+import { CheckInComponent } from './components/check-in/check-in.component';
 
 @NgModule({
   declarations: [
@@ -20,10 +22,13 @@ import { ManagedToolsComponent } from './components/managed-tools/managed-tools.
     StandardToolsComponent,
     DashboardComponent,
     ManagedToolsComponent,
+    CheckOutComponent,
+    CheckInComponent,
   ],
   imports: [
     BrowserModule,
     FormsModule,
+    ReactiveFormsModule,
     AppRoutingModule,
     MaterialModule
   ],

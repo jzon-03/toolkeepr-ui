@@ -13,6 +13,7 @@ import { DashboardComponent } from './components/dashboard/dashboard.component';
 import { ManagedToolsComponent } from './components/managed-tools/managed-tools.component';
 import { CheckOutComponent } from './components/check-out/check-out.component';
 import { CheckInComponent } from './components/check-in/check-in.component';
+import { CategoriesComponent } from './components/categories/categories.component';
 
 @NgModule({
   declarations: [
@@ -24,6 +25,7 @@ import { CheckInComponent } from './components/check-in/check-in.component';
     ManagedToolsComponent,
     CheckOutComponent,
     CheckInComponent,
+    CategoriesComponent,
   ],
   imports: [
     BrowserModule,

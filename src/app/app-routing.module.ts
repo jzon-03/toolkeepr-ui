@@ -7,6 +7,7 @@ import { DashboardComponent } from './components/dashboard/dashboard.component';
 import { ManagedToolsComponent } from './components/managed-tools/managed-tools.component';
 import { CheckOutComponent } from './components/check-out/check-out.component';
 import { CheckInComponent } from './components/check-in/check-in.component';
+import { CategoriesComponent } from './components/categories/categories.component';
 
 const routes: Routes = [
   {
@@ -41,6 +42,10 @@ const routes: Routes = [
       {
         path: 'check-in',
         component: CheckInComponent
+      },
+      {
+        path: 'categories',
+        component: CategoriesComponent
       }
       // Other routes commented out until components are created
       // {

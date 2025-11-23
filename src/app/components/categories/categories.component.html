@@ -1,0 +1,402 @@
+<div class="categories-container">
+  <!-- Header Section -->
+  <div class="page-header">
+    <div class="header-content">
+      <div class="title-section">
+        <h1 class="page-title">
+          <mat-icon class="title-icon">category</mat-icon>
+          Category Management
+        </h1>
+        <p class="page-subtitle">Organize and manage tool categories for better inventory control</p>
+      </div>
+      <div class="header-actions">
+        <button mat-raised-button color="primary" (click)="openAddModal()" class="add-btn">
+          <mat-icon>add</mat-icon>
+          Add Category
+        </button>
+        <button mat-stroked-button color="primary" (click)="exportCategories()" class="export-btn">
+          <mat-icon>download</mat-icon>
+          Export
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Stats Dashboard -->
+  <div class="stats-grid" [@slideInOut]>
+    <mat-card class="stat-card total">
+      <mat-card-content>
+        <div class="stat-content">
+          <div class="stat-info">
+            <h3>{{ stats.totalCategories }}</h3>
+            <p>Total Categories</p>
+          </div>
+          <mat-icon class="stat-icon">category</mat-icon>
+        </div>
+      </mat-card-content>
+    </mat-card>
+
+    <mat-card class="stat-card active">
+      <mat-card-content>
+        <div class="stat-content">
+          <div class="stat-info">
+            <h3>{{ stats.activeCategories }}</h3>
+            <p>Active Categories</p>
+          </div>
+          <mat-icon class="stat-icon">check_circle</mat-icon>
+        </div>
+      </mat-card-content>
+    </mat-card>
+
+    <mat-card class="stat-card tools">
+      <mat-card-content>
+        <div class="stat-content">
+          <div class="stat-info">
+            <h3>{{ stats.totalTools }}</h3>
+            <p>Total Tools</p>
+          </div>
+          <mat-icon class="stat-icon">build</mat-icon>
+        </div>
+      </mat-card-content>
+    </mat-card>
+
+    <mat-card class="stat-card popular">
+      <mat-card-content>
+        <div class="stat-content">
+          <div class="stat-info">
+            <h3>{{ stats.mostUsedCategory }}</h3>
+            <p>Most Popular</p>
+          </div>
+          <mat-icon class="stat-icon">trending_up</mat-icon>
+        </div>
+      </mat-card-content>
+    </mat-card>
+  </div>
+
+  <!-- Controls Section -->
+  <mat-card class="controls-card">
+    <mat-card-content>
+      <div class="controls-content">
+        <div class="filter-section">
+          <mat-chip-set>
+            <mat-chip-option (click)="setFilterStatus('all')" [selected]="filterStatus === 'all'">
+              All ({{ stats.totalCategories }})
+            </mat-chip-option>
+            <mat-chip-option (click)="setFilterStatus('active')" [selected]="filterStatus === 'active'">
+              Active ({{ stats.activeCategories }})
+            </mat-chip-option>
+            <mat-chip-option (click)="setFilterStatus('inactive')" [selected]="filterStatus === 'inactive'">
+              Inactive ({{ stats.totalCategories - stats.activeCategories }})
+            </mat-chip-option>
+          </mat-chip-set>
+        </div>
+
+        <div class="view-controls">
+          <mat-form-field appearance="outline" class="search-field">
+            <mat-label>Search Categories</mat-label>
+            <input matInput (keyup)="applySearchFilter($event)" placeholder="Search by name or description...">
+            <mat-icon matPrefix>search</mat-icon>
+          </mat-form-field>
+
+          <div class="view-toggle">
+            <mat-button-toggle-group [value]="viewMode" (change)="setViewMode($event.value)">
+              <mat-button-toggle value="grid">
+                <mat-icon>grid_view</mat-icon>
+              </mat-button-toggle>
+              <mat-button-toggle value="list">
+                <mat-icon>view_list</mat-icon>
+              </mat-button-toggle>
+            </mat-button-toggle-group>
+          </div>
+        </div>
+      </div>
+    </mat-card-content>
+  </mat-card>
+
+  <!-- Grid View -->
+  <div class="categories-grid" *ngIf="viewMode === 'grid'" [@slideInOut]>
+    <mat-card class="category-card" *ngFor="let category of dataSource.data" [class.inactive-card]="!category.isActive">
+      <mat-card-header [style.background-color]="category.color" class="category-header">
+        <div class="category-header-content">
+          <mat-icon class="category-icon">{{ category.icon }}</mat-icon>
+          <div class="category-title-section">
+            <mat-card-title class="category-title">{{ category.name }}</mat-card-title>
+            <mat-card-subtitle class="category-subtitle">{{ category.toolCount }} tools</mat-card-subtitle>
+          </div>
+        </div>
+        <div class="status-indicator">
+          <mat-chip [color]="getStatusColor(category.isActive)">{{ getStatusText(category.isActive) }}</mat-chip>
+        </div>
+      </mat-card-header>
+
+      <mat-card-content class="category-content">
+        <p class="category-description">{{ category.description }}</p>
+        <div class="category-meta">
+          <div class="meta-item">
+            <mat-icon>schedule</mat-icon>
+            <span>Modified: {{ formatDate(category.lastModified) }}</span>
+          </div>
+          <div class="meta-item">
+            <mat-icon>date_range</mat-icon>
+            <span>Created: {{ formatDate(category.createdDate) }}</span>
+          </div>
+        </div>
+      </mat-card-content>
+
+      <mat-card-actions class="category-actions">
+        <button mat-button color="primary" (click)="openEditModal(category)">
+          <mat-icon>edit</mat-icon>
+          Edit
+        </button>
+        <button mat-button 
+                [color]="category.isActive ? 'warn' : 'primary'" 
+                (click)="toggleCategoryStatus(category)">
+          <mat-icon>{{ category.isActive ? 'pause' : 'play_arrow' }}</mat-icon>
+          {{ category.isActive ? 'Deactivate' : 'Activate' }}
+        </button>
+        <button mat-button color="warn" (click)="confirmDelete(category)">
+          <mat-icon>delete</mat-icon>
+          Delete
+        </button>
+      </mat-card-actions>
+    </mat-card>
+  </div>
+
+  <!-- List View -->
+  <mat-card class="list-view-card" *ngIf="viewMode === 'list'">
+    <div class="table-container">
+      <table mat-table [dataSource]="dataSource" matSort class="categories-table">
+        <!-- Icon Column -->
+        <ng-container matColumnDef="icon">
+          <th mat-header-cell *matHeaderCellDef>Icon</th>
+          <td mat-cell *matCellDef="let category">
+            <div class="icon-cell" [style.background-color]="category.color">
+              <mat-icon>{{ category.icon }}</mat-icon>
+            </div>
+          </td>
+        </ng-container>
+
+        <!-- Name Column -->
+        <ng-container matColumnDef="name">
+          <th mat-header-cell *matHeaderCellDef mat-sort-header>Category</th>
+          <td mat-cell *matCellDef="let category">
+            <div class="name-cell">
+              <span class="category-name">{{ category.name }}</span>
+              <span class="category-id">ID: {{ category.id }}</span>
+            </div>
+          </td>
+        </ng-container>
+
+        <!-- Description Column -->
+        <ng-container matColumnDef="description">
+          <th mat-header-cell *matHeaderCellDef mat-sort-header>Description</th>
+          <td mat-cell *matCellDef="let category">
+            <span class="description-text">{{ category.description }}</span>
+          </td>
+        </ng-container>
+
+        <!-- Tool Count Column -->
+        <ng-container matColumnDef="toolCount">
+          <th mat-header-cell *matHeaderCellDef mat-sort-header>Tools</th>
+          <td mat-cell *matCellDef="let category">
+            <div class="tool-count-cell">
+              <mat-icon>build</mat-icon>
+              <span>{{ category.toolCount }}</span>
+            </div>
+          </td>
+        </ng-container>
+
+        <!-- Status Column -->
+        <ng-container matColumnDef="status">
+          <th mat-header-cell *matHeaderCellDef mat-sort-header>Status</th>
+          <td mat-cell *matCellDef="let category">
+            <mat-chip [color]="getStatusColor(category.isActive)">
+              {{ getStatusText(category.isActive) }}
+            </mat-chip>
+          </td>
+        </ng-container>
+
+        <!-- Last Modified Column -->
+        <ng-container matColumnDef="lastModified">
+          <th mat-header-cell *matHeaderCellDef mat-sort-header>Modified</th>
+          <td mat-cell *matCellDef="let category">{{ formatDate(category.lastModified) }}</td>
+        </ng-container>
+
+        <!-- Actions Column -->
+        <ng-container matColumnDef="actions">
+          <th mat-header-cell *matHeaderCellDef>Actions</th>
+          <td mat-cell *matCellDef="let category">
+            <div class="action-buttons">
+              <button mat-icon-button color="primary" (click)="openEditModal(category)" matTooltip="Edit Category">
+                <mat-icon>edit</mat-icon>
+              </button>
+              <button mat-icon-button 
+                      [color]="category.isActive ? 'warn' : 'primary'" 
+                      (click)="toggleCategoryStatus(category)"
+                      [matTooltip]="category.isActive ? 'Deactivate' : 'Activate'">
+                <mat-icon>{{ category.isActive ? 'pause' : 'play_arrow' }}</mat-icon>
+              </button>
+              <button mat-icon-button color="warn" (click)="confirmDelete(category)" matTooltip="Delete Category">
+                <mat-icon>delete</mat-icon>
+              </button>
+            </div>
+          </td>
+        </ng-container>
+
+        <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+        <tr mat-row *matRowDef="let row; columns: displayedColumns;" 
+            [class.inactive-row]="!row.isActive"></tr>
+
+        <tr class="mat-row" *matNoDataRow>
+          <td class="mat-cell no-data-cell" [attr.colspan]="displayedColumns.length">
+            <div class="no-data">
+              <mat-icon>category</mat-icon>
+              <p>No categories found</p>
+              <button mat-raised-button color="primary" (click)="openAddModal()">
+                <mat-icon>add</mat-icon>
+                Add First Category
+              </button>
+            </div>
+          </td>
+        </tr>
+      </table>
+    </div>
+
+    <mat-paginator [pageSizeOptions]="[5, 10, 25, 50]" showFirstLastButtons></mat-paginator>
+  </mat-card>
+
+  <!-- Add/Edit Modal -->
+  <div class="modal-overlay" *ngIf="showAddModal || showEditModal" [@fadeInOut]>
+    <mat-card class="category-modal">
+      <mat-card-header>
+        <mat-card-title>
+          <mat-icon>{{ editingCategory ? 'edit' : 'add' }}</mat-icon>
+          {{ editingCategory ? 'Edit Category' : 'Add New Category' }}
+        </mat-card-title>
+        <button mat-icon-button class="close-btn" (click)="closeModal()">
+          <mat-icon>close</mat-icon>
+        </button>
+      </mat-card-header>
+
+      <mat-card-content>
+        <form [formGroup]="categoryForm" (ngSubmit)="saveCategory()">
+          <div class="form-grid">
+            <mat-form-field appearance="outline">
+              <mat-label>Category Name</mat-label>
+              <input matInput formControlName="name" placeholder="Enter category name" maxlength="50">
+              <mat-icon matPrefix>label</mat-icon>
+              <mat-hint>{{ categoryForm.get('name')?.value?.length || 0 }}/50</mat-hint>
+              <mat-error *ngIf="categoryForm.get('name')?.hasError('required')">
+                Category name is required
+              </mat-error>
+              <mat-error *ngIf="categoryForm.get('name')?.hasError('minlength')">
+                Name must be at least 2 characters
+              </mat-error>
+              <mat-error *ngIf="categoryNameExists(categoryForm.get('name')?.value)">
+                Category name already exists
+              </mat-error>
+            </mat-form-field>
+
+            <div class="status-toggle">
+              <mat-slide-toggle formControlName="isActive" color="primary">
+                Active Category
+              </mat-slide-toggle>
+            </div>
+
+            <mat-form-field appearance="outline" class="description-field">
+              <mat-label>Description</mat-label>
+              <textarea matInput formControlName="description" rows="3" placeholder="Describe this category..." maxlength="200"></textarea>
+              <mat-icon matPrefix>description</mat-icon>
+              <mat-hint>{{ categoryForm.get('description')?.value?.length || 0 }}/200</mat-hint>
+              <mat-error *ngIf="categoryForm.get('description')?.hasError('required')">
+                Description is required
+              </mat-error>
+            </mat-form-field>
+
+            <div class="color-selection">
+              <label class="selection-label">Category Color</label>
+              <div class="color-grid">
+                <div *ngFor="let color of availableColors" 
+                     class="color-option"
+                     [style.background-color]="color"
+                     [class.selected]="categoryForm.get('color')?.value === color"
+                     (click)="categoryForm.patchValue({color: color})">
+                  <mat-icon *ngIf="categoryForm.get('color')?.value === color">check</mat-icon>
+                </div>
+              </div>
+            </div>
+
+            <div class="icon-selection">
+              <label class="selection-label">Category Icon</label>
+              <div class="icon-grid">
+                <div *ngFor="let icon of availableIcons" 
+                     class="icon-option"
+                     [class.selected]="categoryForm.get('icon')?.value === icon"
+                     (click)="categoryForm.patchValue({icon: icon})">
+                  <mat-icon>{{ icon }}</mat-icon>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="preview-section">
+            <h4>Preview</h4>
+            <div class="category-preview" [style.background-color]="categoryForm.get('color')?.value">
+              <mat-icon class="preview-icon">{{ categoryForm.get('icon')?.value }}</mat-icon>
+              <div class="preview-text">
+                <h3>{{ categoryForm.get('name')?.value || 'Category Name' }}</h3>
+                <p>{{ categoryForm.get('description')?.value || 'Category Description' }}</p>
+              </div>
+            </div>
+          </div>
+
+          <mat-card-actions align="end">
+            <button type="button" mat-button (click)="closeModal()">Cancel</button>
+            <button type="submit" 
+                    mat-raised-button 
+                    color="primary" 
+                    [disabled]="categoryForm.invalid || isLoading || categoryNameExists(categoryForm.get('name')?.value)">
+              <mat-icon *ngIf="isLoading" class="spinning">refresh</mat-icon>
+              <mat-icon *ngIf="!isLoading">{{ editingCategory ? 'save' : 'add' }}</mat-icon>
+              {{ isLoading ? 'Saving...' : (editingCategory ? 'Update Category' : 'Create Category') }}
+            </button>
+          </mat-card-actions>
+        </form>
+      </mat-card-content>
+    </mat-card>
+  </div>
+
+  <!-- Delete Confirmation Modal -->
+  <div class="modal-overlay" *ngIf="showDeleteConfirm" [@fadeInOut]>
+    <mat-card class="confirm-modal">
+      <mat-card-header>
+        <mat-card-title class="delete-title">
+          <mat-icon class="delete-icon">warning</mat-icon>
+          Confirm Deletion
+        </mat-card-title>
+      </mat-card-header>
+
+      <mat-card-content>
+        <div class="delete-content">
+          <p>Are you sure you want to delete the category <strong>"{{ categoryToDelete?.name }}"</strong>?</p>
+          <div class="warning-info">
+            <mat-icon>info</mat-icon>
+            <div>
+              <p><strong>This action cannot be undone.</strong></p>
+              <p>All tools in this category will need to be reassigned.</p>
+              <p class="tool-count">{{ categoryToDelete?.toolCount }} tools will be affected.</p>
+            </div>
+          </div>
+        </div>
+      </mat-card-content>
+
+      <mat-card-actions align="end">
+        <button mat-button (click)="cancelDelete()">Cancel</button>
+        <button mat-raised-button color="warn" (click)="deleteCategory()">
+          <mat-icon>delete</mat-icon>
+          Delete Category
+        </button>
+      </mat-card-actions>
+    </mat-card>
+  </div>
+</div>

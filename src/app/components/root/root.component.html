@@ -1,6 +1,6 @@
 <mat-drawer-container class="drawer-container">
   <!-- Side Navigation -->
-  <mat-drawer #drawer class="sidenav" mode="side" opened>
+  <mat-drawer #drawer class="sidenav" [mode]="drawerMode" [opened]="drawerOpened">
     <mat-toolbar color="primary">
       <span>Navigation</span>
     </mat-toolbar>
@@ -68,8 +68,8 @@
       <button
         type="button"
         mat-icon-button
-    
-        class="menu-button" (click)="drawer.toggle()">
+        class="menu-button" 
+        (click)="toggleDrawer()">
         <mat-icon>menu</mat-icon>
       </button>
       <span>ToolKeepr</span>

@@ -8,27 +8,6 @@
   <link rel="icon" type="image/x-icon" href="favicon.ico">
   <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500&display=swap" rel="stylesheet">
   <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
-  <script>
-    // GitHub Pages SPA redirect handling
-    (function() {
-      var redirect = sessionStorage.redirect;
-      delete sessionStorage.redirect;
-      if (redirect && redirect != location.href) {
-        history.replaceState(null, null, redirect);
-      }
-    })();
-    
-    // Handle 404 redirects for GitHub Pages
-    (function() {
-      var l = window.location;
-      if (l.search && l.search[1] === '?' && l.search.includes('&p=/')) {
-        var pathname = l.search.substr(1).split('&p=/')[1];
-        if (pathname) {
-          sessionStorage.redirect = l.origin + '/' + pathname;
-        }
-      }
-    })();
-  </script>
 </head>
 <body>
   <app-root></app-root>

@@ -5,14 +5,14 @@
   <title>ToolKeepr - Tool Management System</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <script>
-    // GitHub Pages 404 redirect for SPAs
+    // Custom domain SPA redirect for 404 pages
     var l = window.location;
-    var pathname = l.pathname.substr(1);
-    if (pathname) {
-      sessionStorage.redirect = l.origin + '/toolkeepr-ui/' + pathname + l.search + l.hash;
-      location.replace(l.origin + '/toolkeepr-ui/?p=/' + pathname + l.search + l.hash);
+    var pathname = l.pathname;
+    if (pathname && pathname !== '/') {
+      sessionStorage.redirect = l.href;
+      location.replace(l.origin + '/?p=' + pathname + l.search + l.hash);
     } else {
-      location.replace(l.origin + '/toolkeepr-ui/');
+      location.replace(l.origin + '/');
     }
   </script>
 </head>

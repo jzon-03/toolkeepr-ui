@@ -116,4 +116,4 @@ This project is licensed under the MIT License.
 
 ## Live Demo
 
-The application is deployed and available at: `https://[your-username].github.io/toolkeepr-ui/`
+The application is deployed and available at: **https://tms.sharpfloornc.com/**

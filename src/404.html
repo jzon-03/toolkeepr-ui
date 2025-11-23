@@ -1,0 +1,22 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>ToolKeepr - Tool Management System</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <script>
+    // GitHub Pages 404 redirect for SPAs
+    var l = window.location;
+    var pathname = l.pathname.substr(1);
+    if (pathname) {
+      sessionStorage.redirect = l.origin + '/toolkeepr-ui/' + pathname + l.search + l.hash;
+      location.replace(l.origin + '/toolkeepr-ui/?p=/' + pathname + l.search + l.hash);
+    } else {
+      location.replace(l.origin + '/toolkeepr-ui/');
+    }
+  </script>
+</head>
+<body>
+  <p>Redirecting...</p>
+</body>
+</html>

@@ -1,27 +1,119 @@
 # ToolkeeprUi
 
-This project was generated with [Angular CLI](https://github.com/angular/angular-cli) version 17.2.3.
+# ToolKeepr - Tool Management System
 
-## Development server
+A comprehensive Angular-based tool inventory management system with dynamic properties, built with Angular Material Design.
 
-Run `ng serve` for a dev server. Navigate to `http://localhost:4200/`. The application will automatically reload if you change any of the source files.
+## Features
 
-## Code scaffolding
+- 🔧 **Comprehensive Tool Management**: Add, edit, and organize tool inventory
+- 📋 **Dynamic Tool Types**: Create custom tool types with configurable properties
+- ⭐ **Standard Tool Classification**: Mark and filter tools as standard inventory
+- 🏷️ **Property Management**: Define custom properties for each tool type (text, number, date, boolean, select)
+- 📊 **Dashboard Analytics**: Overview statistics and recent activity tracking
+- 🔍 **Advanced Filtering**: Search and filter tools by status, type, and standard classification
+- 📱 **Responsive Design**: Works seamlessly on desktop, tablet, and mobile devices
 
-Run `ng generate component component-name` to generate a new component. You can also use `ng generate directive|pipe|service|class|guard|interface|enum|module`.
+## Technologies
 
-## Build
+- **Angular 17** - Modern web framework
+- **Angular Material** - Material Design components
+- **TypeScript** - Type-safe development
+- **RxJS** - Reactive programming
+- **CSS Grid & Flexbox** - Modern responsive layouts
 
-Run `ng build` to build the project. The build artifacts will be stored in the `dist/` directory.
+## Development
 
-## Running unit tests
+### Prerequisites
+- Node.js (version 18 or later)
+- npm or yarn
+- Angular CLI
 
-Run `ng test` to execute the unit tests via [Karma](https://karma-runner.github.io).
+### Setup
+1. Clone the repository
+2. Install dependencies: `npm install`
+3. Start development server: `npm start`
+4. Open browser to `http://localhost:4200`
 
-## Running end-to-end tests
+### Available Scripts
 
-Run `ng e2e` to execute the end-to-end tests via a platform of your choice. To use this command, you need to first add a package that implements end-to-end testing capabilities.
+- `npm start` - Start development server
+- `npm run build` - Build for production
+- `npm run build:gh-pages` - Build for GitHub Pages deployment
+- `npm run deploy` - Deploy to GitHub Pages
+- `npm test` - Run unit tests
 
-## Further help
+## GitHub Pages Deployment
 
-To get more help on the Angular CLI use `ng help` or go check out the [Angular CLI Overview and Command Reference](https://angular.io/cli) page.
+This application is configured for automatic deployment to GitHub Pages.
+
+### Automatic Deployment (Recommended)
+
+1. **Push to main/master branch** - The GitHub Actions workflow will automatically build and deploy
+2. **Enable GitHub Pages** in your repository settings:
+   - Go to Settings → Pages
+   - Select "Deploy from a branch"
+   - Choose "gh-pages" branch
+   - Click Save
+
+### Manual Deployment
+
+If you prefer manual deployment:
+
+```bash
+# Build and deploy manually
+npm run deploy
+```
+
+### Deployment Configuration
+
+The deployment is configured to handle Angular's browser output folder and SPA routing:
+
+- ✅ **Browser Folder**: Correctly deploys from `dist/toolkeepr-ui/browser`
+- ✅ **Base Href**: Automatically sets `/toolkeepr-ui/` for GitHub Pages
+- ✅ **SPA Routing**: Includes 404.html redirect handling for Angular routes
+- ✅ **Asset Optimization**: Production build with optimizations enabled
+
+### GitHub Actions Workflow
+
+The automated deployment:
+1. Triggers on push to main/master branch
+2. Sets up Node.js 18 environment
+3. Installs dependencies with `npm ci`
+4. Builds application with production configuration
+5. Deploys to gh-pages branch with correct folder structure
+
+## Usage
+
+### Tool Management
+1. **Navigate to "Manage Tools"** from the sidebar
+2. **Tool Types Tab**: Create and configure tool types with custom properties
+3. **Tools Tab**: Add individual tools with type-specific properties
+4. **Properties Management**: Click the settings icon on any tool type to define custom properties
+
+### Dashboard
+- View inventory statistics
+- Monitor recent activity
+- Quick access to common functions
+
+### Navigation
+- **Dashboard**: Overview and statistics
+- **Tools**: Browse and filter all tools
+- **Standard Tools**: View only standard inventory
+- **Manage Tools**: Add/edit tools and tool types
+
+## Contributing
+
+1. Fork the repository
+2. Create a feature branch: `git checkout -b feature-name`
+3. Make your changes and commit: `git commit -am 'Add feature'`
+4. Push to the branch: `git push origin feature-name`
+5. Submit a pull request
+
+## License
+
+This project is licensed under the MIT License.
+
+## Live Demo
+
+The application is deployed and available at: `https://[your-username].github.io/toolkeepr-ui/`
